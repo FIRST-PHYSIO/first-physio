@@ -204,15 +204,16 @@ function load(){
 function applyJulyPatch(){
   if((DB.seedVer||1)>=3)return false;
   const WIN_S='2026-06-29',WIN_E='2026-08-01';
+  const SEED_TS=1783600000000; /* 고정 도장: 이후 사용자 변경(취소·완료·수정)이 항상 우선 */
   const baseName=n=>n.replace(/\(.+\)$/,'');
   /* 7월 창 전체 세션을 시트 판독본으로 교체 (유령 데이터 포함 전부 제거) */
-  DB.sessions.filter(s=>s.date>=WIN_S&&s.date<=WIN_E).forEach(s=>DB.deleted.push({id:s.id,ts:now()}));
+  DB.sessions.filter(s=>s.date>=WIN_S&&s.date<=WIN_E&&!s.id.startsWith('s3_')).forEach(s=>DB.deleted.push({id:s.id,ts:now()}));
   DB.sessions=DB.sessions.filter(s=>!(s.date>=WIN_S&&s.date<=WIN_E));
   REAL_SEED3.members.forEach((sm,i)=>{
     const cands=DB.members.filter(x=>baseName(x.name)===baseName(sm.name));
     let m=cands.length===1?cands[0]:cands.find(x=>x.packages&&x.packages[0]&&+x.packages[0].count===sm.baseTotal);
     if(!m){
-      m={id:'n3_'+i,name:sm.name,trainer:sm.trainer,program:sm.program,status:'active',phone:'',referredBy:sm.ref||'',pref:sm.pref||'',goal:sm.goal||'',notes:'2026-07 퍼피짐 스케줄표 이관(이미지 판독)',carryUsed:sm.carry,followUp:{status:'대기',memo:''},updatedAt:now(),
+      m={id:'n3_'+i,name:sm.name,trainer:sm.trainer,program:sm.program,status:'active',phone:'',referredBy:sm.ref||'',pref:sm.pref||'',goal:sm.goal||'',notes:'2026-07 퍼피짐 스케줄표 이관(이미지 판독)',carryUsed:sm.carry,followUp:{status:'대기',memo:''},updatedAt:SEED_TS,
         packages:[{id:'n3p_'+i,date:'',count:sm.baseTotal,perPrice:sm.per,amount:sm.baseTotal*sm.per,memo:'이관'}]};
       DB.members.push(m);
     }else{
@@ -221,7 +222,7 @@ function applyJulyPatch(){
       m.name=sm.name;
       if(!m.pref&&sm.pref)m.pref=sm.pref;
       if(!m.goal&&sm.goal)m.goal=sm.goal;
-      m.updatedAt=now();
+      m.updatedAt=SEED_TS;
     }
     const tot=totalOf(m);
     if(tot<sm.total){
@@ -229,7 +230,7 @@ function applyJulyPatch(){
         m.packages.push({id:'n3r_'+i,date:sm.renew.date,count:sm.renew.count,perPrice:sm.renew.per,amount:sm.renew.amount,memo:'재등록(시트 확인)'});
       else
         m.packages.push({id:'n3b_'+i,date:'',count:sm.total-tot,perPrice:perOf(m)||sm.per,amount:0,memo:'이관 보정'});
-      m.updatedAt=now();
+      m.updatedAt=Math.max(m.updatedAt||0,SEED_TS);
     }
     sm._mid=m.id;
   });
@@ -237,7 +238,7 @@ function applyJulyPatch(){
   REAL_SEED3.sessions.forEach((ss,i)=>{
     const sm=REAL_SEED3.members.find(x=>x.name===ss.name);
     if(!sm||!sm._mid)return;
-    DB.sessions.push({id:'s3_'+i,memberId:sm._mid,trainer:ss.trainer,date:ss.date,hour:ss.hour,status:ss.date<=td?'done':'booked',updatedAt:now()});
+    DB.sessions.push({id:'s3_'+i,memberId:sm._mid,trainer:ss.trainer,date:ss.date,hour:ss.hour,status:ss.date<=td?'done':'booked',updatedAt:SEED_TS});
   });
   /* 예전 시드가 만든 유령 중복 회원 정리: 시트에 있는 이름과 겹치지만 매칭 안 됐고,
      세션·실결제가 전혀 없는 이관 전용 레코드만 제거 */
@@ -258,18 +259,23 @@ function applyJulyPatch(){
 /* 같은 회원·같은 날짜·같은 시간 세션은 1건만 유효 (수업 1회=1시간 원칙).
    기기 간 병합·이중 입력으로 중복이 생겨도 실행/동기화 때마다 자동 정리되고 서버에도 전파된다. */
 function dedupeSessions(){
+  let ghost=0; /* 7월 시트에 없는 6/29~30 유령 세션은 언제 발견돼도 즉시 제거 */
+  DB.sessions=DB.sessions.filter(s=>{
+    if(s.date>='2026-06-28'&&s.date<='2026-06-30'){DB.deleted.push({id:s.id,ts:now()});ghost++;return false;}
+    return true;
+  });
   const rank={done:4,noshow:3,late_cancel:2,booked:1,cancelled:0};
   const seen={};const del=new Set();
   DB.sessions.slice().sort((a,b)=>(rank[b.status]||0)-(rank[a.status]||0)||(a.updatedAt||0)-(b.updatedAt||0)).forEach(s=>{
     const k=s.memberId+'|'+s.date+'|'+s.hour;
     if(seen[k])del.add(s.id);else seen[k]=true;
   });
-  if(del.size){
+  if(del.size||ghost){
     DB.sessions=DB.sessions.filter(s=>!del.has(s.id));
     del.forEach(id=>DB.deleted.push({id,ts:now()}));
     saveLocal();
   }
-  return del.size;
+  return del.size+ghost;
 }
 function saveLocal(){localStorage.setItem(KEY,JSON.stringify(DB));}
 function save(){saveLocal();schedulePush();}
@@ -353,7 +359,7 @@ function mergeCol(a,b,deleted){
 }
 function mergeDB(local,remote){
   if(!remote||!remote.members)return local;
-  const deleted=mergeCol(local.deleted||[],remote.deleted||[],[]).slice(0,800);
+  const deleted=mergeCol(local.deleted||[],remote.deleted||[],[]).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,4000);
   const out={...local};
   out.deleted=deleted;
   ['members','sessions','blocks','events'].forEach(k=>out[k]=mergeCol(local[k],remote[k],deleted));
