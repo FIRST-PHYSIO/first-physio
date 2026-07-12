@@ -194,8 +194,24 @@ const REAL_SEED={"members":[{"id":"m_0","name":"Tasya","trainer":"김택연","pr
 let DB=null;
 function fresh(){return {members:[],sessions:[],blocks:[],events:[],deleted:[],trainers:['홍웅표','신종수','김택연','정병건','장동진','김강윤'],trainerMeta:{},duty:JSON.parse(JSON.stringify(DEFAULT_DUTY)),noshowDeduct:true,metaTs:Date.now(),seq:1};}
 function load(){
-  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));return;}}catch(e){}
-  DB=fresh();importSeed();
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));dedupeSessions();return;}}catch(e){}
+  DB=fresh();importSeed();dedupeSessions();
+}
+/* 같은 회원·같은 날짜·같은 시간 세션은 1건만 유효 (수업 1회=1시간 원칙).
+   기기 간 병합·이중 입력으로 중복이 생겨도 실행/동기화 때마다 자동 정리되고 서버에도 전파된다. */
+function dedupeSessions(){
+  const rank={done:4,noshow:3,late_cancel:2,booked:1,cancelled:0};
+  const seen={};const del=new Set();
+  DB.sessions.slice().sort((a,b)=>(rank[b.status]||0)-(rank[a.status]||0)||(a.updatedAt||0)-(b.updatedAt||0)).forEach(s=>{
+    const k=s.memberId+'|'+s.date+'|'+s.hour;
+    if(seen[k])del.add(s.id);else seen[k]=true;
+  });
+  if(del.size){
+    DB.sessions=DB.sessions.filter(s=>!del.has(s.id));
+    del.forEach(id=>DB.deleted.push({id,ts:now()}));
+    saveLocal();
+  }
+  return del.size;
 }
 function saveLocal(){localStorage.setItem(KEY,JSON.stringify(DB));}
 function save(){saveLocal();schedulePush();}
@@ -300,6 +316,7 @@ async function pullSync(force){
       DB=mergeDB(DB,rows[0].data);
       SYNC.syncedVer=rows[0].version;
       saveLocal();
+      if(dedupeSessions())schedulePush();
       SYNC.state='on';
       notifyNew(prevEvts);
       if(!document.getElementById('overlay').classList.contains('show'))render();
@@ -732,7 +749,32 @@ function renderBlocks(){
       return `<td class="${b?'b':''}" onclick="toggleBlock(${wd},${h})">${b?'✕':''}</td>`;
     }).join('')}</tr>`).join('')}
   </table></div>
+  <h4 style="margin:14px 0 6px;font-size:13px">특정 날짜만 차단 <span style="font-weight:500;color:var(--sub);font-size:12px">— 휴가·세미나 등 일회성 (회원 예약 불가)</span></h4>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+    <input type="date" id="bd-date" value="${today()}">
+    <select id="bd-from">${HOURS.map(x=>`<option value="${x}">${x}:00</option>`).join('')}</select>
+    ~ <select id="bd-to">${HOURS.map(x=>`<option value="${x}" ${x===22?'selected':''}>${x}:00</option>`).join('')}</select>
+    <button class="btn small" onclick="addDateBlock()">차단 추가</button>
+  </div>
+  <div class="pill-row" style="margin-top:8px">
+    ${DB.blocks.filter(b=>b.trainer===t&&b.date).sort((a,b)=>(a.date+String(a.hour).padStart(2,'0')).localeCompare(b.date+String(b.hour).padStart(2,'0'))).map(b=>`<span class="trainer-tag">${korDate(b.date)} ${b.hour}시 <b onclick="delBlock('${b.id}')">✕</b></span>`).join('')||'<span style="font-size:12px;color:var(--sub)">등록된 일회성 차단 없음</span>'}
+  </div>
   <div class="modal-actions"><button class="btn" onclick="closeModal();render()">완료</button></div>`);
+}
+function addDateBlock(){
+  const t=BLK_TRAINER;
+  const d=document.getElementById('bd-date').value;
+  const from=+document.getElementById('bd-from').value,to=+document.getElementById('bd-to').value;
+  if(!d||to<from){alert('날짜와 시간 범위를 확인해 주세요.');return;}
+  for(let hh=from;hh<=to;hh++){
+    if(!DB.blocks.some(b=>b.trainer===t&&b.date===d&&b.hour===hh))
+      DB.blocks.push({id:uid(),trainer:t,date:d,hour:hh,updatedAt:now()});
+  }
+  save();renderBlocks();
+}
+function delBlock(id){
+  const i=DB.blocks.findIndex(b=>b.id===id);
+  if(i>=0){DB.deleted.push({id,ts:now()});DB.blocks.splice(i,1);save();renderBlocks();}
 }
 function toggleBlock(wd,h){
   const t=BLK_TRAINER;
@@ -834,6 +876,7 @@ function openMember(mid){
     <div class="full"><label>가능한 요일·시간</label><input id="mf-pref" value="${m?esc(m.pref||''):''}" placeholder="예: 화·목 오전 10시"></div>
     <div class="full"><label>운동 목적 / 임상 특이사항</label><textarea id="mf-goal" rows="2">${m?esc(m.goal||''):''}</textarea></div>
     <div class="full"><label>인수인계 메모</label><textarea id="mf-notes" rows="2">${m?esc(m.notes||''):''}</textarea></div>
+    ${m?`<div class="full"><label>이관 사용 횟수 (시스템 도입 전 사용분 — 잘못 넣은 경우만 수정)</label><input id="mf-carry" type="number" value="${m.carryUsed||0}" min="0"></div>`:''}
     ${!m?`
     <div class="full" style="border-top:1px solid var(--line);padding-top:10px"><b style="font-size:13px">첫 등록 패키지 (결제)</b></div>
     <div><label>등록 횟수 *</label><input id="mf-count" type="number" min="1" placeholder="예: 20"></div>
@@ -845,7 +888,7 @@ function openMember(mid){
   ${m?`
   <div style="margin-top:14px"><b style="font-size:13px">결제·패키지 이력</b> <button class="btn small" style="margin-left:8px" onclick="addPackage('${m.id}')">+ 재등록 결제 추가</button>
     <div class="hist" style="margin-top:6px"><table><thead><tr><th>결제일</th><th>횟수</th><th>회당</th><th>금액</th><th></th></tr></thead><tbody>
-    ${pkgs.map((p,i)=>`<tr><td>${p.date||'<span class="badge b-gray">이관</span>'}</td><td class="mono">${p.count}회</td><td class="mono">${fmtW(p.perPrice)}</td><td class="mono">${p.date?fmtW(p.amount):'-'}</td><td>${i===0?'<span class="badge b-blue">초</span>':'<span class="badge b-ok">재</span>'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">결제 이력 없음</td></tr>'}
+    ${pkgs.map((p,i)=>`<tr><td>${p.date||'<span class="badge b-gray">이관</span>'}</td><td class="mono">${p.count}회</td><td class="mono">${fmtW(p.perPrice)}</td><td class="mono">${p.date?fmtW(p.amount):'-'}</td><td>${i===0?'<span class="badge b-blue">초</span>':'<span class="badge b-ok">재</span>'}</td><td style="white-space:nowrap;text-align:right"><button class="btn small ghost" onclick="editPackage('${m.id}','${p.id}')">수정</button> <button class="btn small ghost" style="color:var(--bad)" onclick="deletePackage('${m.id}','${p.id}')">삭제</button></td></tr>`).join('')||'<tr><td colspan="6" class="empty">결제 이력 없음</td></tr>'}
     </tbody></table></div></div>
   <div style="margin-top:12px"><b style="font-size:13px">최근 세션 기록</b>
     <div class="hist" style="margin-top:6px"><table><tbody>
@@ -873,7 +916,7 @@ function saveMember(mid){
     program:document.getElementById('mf-program').value,status:document.getElementById('mf-status').value,
     referredBy:document.getElementById('mf-ref').value.trim(),pref:document.getElementById('mf-pref').value.trim(),
     goal:document.getElementById('mf-goal').value.trim(),notes:document.getElementById('mf-notes').value.trim(),updatedAt:now()};
-  if(mid){Object.assign(DB.members.find(x=>x.id===mid),base);}
+  if(mid){const mm=DB.members.find(x=>x.id===mid);Object.assign(mm,base);const cv=document.getElementById('mf-carry');if(cv)mm.carryUsed=Math.max(0,+cv.value||0);}
   else{
     const count=+document.getElementById('mf-count').value||0;
     if(!count){alert('첫 등록 횟수를 입력해 주세요.');return;}
@@ -909,6 +952,40 @@ function savePackage(mid){
   save();openMember(mid);
 }
 function pkAmt(){const c=+document.getElementById('pk-count').value||0,p=+document.getElementById('pk-per').value||0;document.getElementById('pk-amount').value=c*p;}
+function editPackage(mid,pid){
+  const m=DB.members.find(x=>x.id===mid);const p=m.packages.find(x=>x.id===pid);if(!p)return;
+  openModal(`
+  <h3>${esc(m.name)} — 결제 수정</h3>
+  <div class="note" style="margin-bottom:12px">횟수를 줄이면 총 횟수가 함께 줄어듭니다. 현재 사용 ${usedOf(m)}회이므로 총 횟수가 그보다 작아지면 만료로 표시됩니다.</div>
+  <div class="frm">
+    <div><label>횟수 *</label><input id="pk-count" type="number" min="1" value="${p.count}" oninput="pkAmt()"></div>
+    <div><label>회당 가격</label><input id="pk-per" type="number" value="${p.perPrice||0}" oninput="pkAmt()"></div>
+    <div><label>결제 금액</label><input id="pk-amount" type="number" value="${p.amount||0}"></div>
+    <div><label>결제일 ${p.date?'':'(이관분 — 비워두면 매출 미집계)'}</label><input id="pk-date" type="date" value="${p.date||''}"></div>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" onclick="openMember('${mid}')">뒤로</button>
+  <button class="btn" onclick="updatePackage('${mid}','${pid}')">저장</button></div>`);
+}
+function updatePackage(mid,pid){
+  const m=DB.members.find(x=>x.id===mid);const p=m.packages.find(x=>x.id===pid);
+  const c=+document.getElementById('pk-count').value||0;
+  if(!c){alert('횟수를 입력해 주세요.');return;}
+  p.count=c;p.perPrice=+document.getElementById('pk-per').value||0;
+  p.amount=+document.getElementById('pk-amount').value||0;
+  p.date=document.getElementById('pk-date').value;
+  m.updatedAt=now();
+  addEvent('staff',m.name+'님 결제 내역 수정 ('+c+'회)');
+  save();openMember(mid);
+}
+function deletePackage(mid,pid){
+  const m=DB.members.find(x=>x.id===mid);const p=m.packages.find(x=>x.id===pid);if(!p)return;
+  if(m.packages.length<=1){alert('마지막 결제(패키지)는 삭제할 수 없습니다. 대신 [수정]으로 내용을 고치세요.');return;}
+  if(!confirm(p.count+'회 ('+fmtW(p.amount)+') 결제를 삭제할까요? 총 횟수가 '+(totalOf(m)-p.count)+'회로 줄어듭니다.'))return;
+  m.packages=m.packages.filter(x=>x.id!==pid);
+  m.updatedAt=now();
+  addEvent('staff',m.name+'님 결제 내역 삭제 ('+p.count+'회)');
+  save();openMember(mid);
+}
 
 /* ================= 재등록 관리 ================= */
 function viewRenew(){
