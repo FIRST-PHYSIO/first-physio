@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>퍼스트피지오 내부 운영 시스템</title>
+<meta name="theme-color" content="#101a33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="퍼스트피지오">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAFb0lEQVR42u2dTWhcZRSG39zONIrUlmBbjOAPtfGnbqxFxVqL0o3gTqytIiKajQtXpVIi7qQUfzZuxAZFRKg/C82mFQsiak1rKyhS0hhqKVqoHWwiDW0yM8aFulGj18nc755z7vMshzvhfmee+57zzcyd9Czrv0UA/0RGCQA5ADkAOQA5ADkAOQA5ADkAOQA5AJADkAOQA5ADkAOQA3xQq+ayL910+P8+5Zf966pWpZ4qfE2wAxXQJbIcBQlRKVFCyZFYiPCiRJDDiBPxLPEth1ktYijiVQ4XWnhXxJ8c7rTwq4gnOVxr4VERH3KE0cKXItblCKmFF0XsyhFeC/uKZJjBej3JUTUzzK7aVlupphZmW0yGGUSIdTkww2A1ym8raGG2xWSYQYRYlAMzjFcpwwz8sCUHZrioWIYZ+GFFDsxwVL0MM/CjfDkww10luR0SypaD2PBYzwwz8KM0OTDDb22ZOaAkOYgN1+GRYQZ+pJYDMwL4wcwBaeUgNmKEB8kBCeUgNsKEB8kBqeQgNiKFB8kBSeQgNoKFB8kBxctBbMQLD5IDCpaD2AgZHiQHzEsX7rLvbmy8vUO3X1/4sj8/qod2FXsmc3OabWm2pbPn1JjSyTOaOKWvj+vIhKYvJHp1F3iTfo3ro6jLrke9dfXWteRiXblca6/94/FWW6Nj+mBUI6O6MFuN3QrkvRwX6c41ev5xffGSnrxPi2tx5WAU7Zi+JXr6Ae3fqZtXGR1LSY6SuWqF3hvS/etpKzBPo3lxUJs3IAfMM73ufEzrVgeSg4Gju/nxwqB664bGDpLDENes1MN3W/KVl2SBDDyhmeZfH6zXtPQSDVyhO27Qlo1avjTvXxu8V69/pLk55Oj2S2KHZkuNKTWmdOCoXh7R0BY9uinXE/v7dNt1Gh1zPnMwcORkpqln39Twh3mP33CTlbGDmSMRu97Rj41cR65dZeWckSMRsy29+1muI69eiRzV49CxXIetWIYc1eOnqXx7hEWq15CjYvTkPtLIVrZDOdiqdEDOftFqq9U2sWEhOdJx60C+7jNp5YS9vgk2Ptz5c5/bo1f3pj7h3ro235XryO9PM5BWjB0P6vK+XEd+NUFyVIaLFuuZrXrknrzHf/otcoTm9w/eVvdr/Y3aulGX5f7g7dTPOjSOHFFYyPTzd3bvtbKPZeawxYnTeutjQ+eDHFZotbVt2Nb3EJDDCkNv6MtxW6eEHCYyY/tr2vOJuRNjIC2ZHxp66hUd+c7iufE1wdKYnNbwPu3eZ/eOWZIjNe1fdXBMIwf1/gGdt30jNXIUSLOlmaYmp3Xmz59g+Oa4Dk/o3Hkf548cNDh2K5BMjgX+ZAwkprPXi+QA5ADkAOQA5ACncrBhib1VITkAOQA5wJAcjB2BBw6SA5ADkANsycHYEXXgIDng3zD3n5ogVHLQWUKaQVuB4uUgPOLFBskBSeQgPILFBskBqeQgPCLFBskBCeUgPMLEBskBaeUgPGLEBskByeUgPALEBskBZchBeHiPjWKTAz9cm1F4W8EPv2Ywc0CpchAefmubBVgDZvhuK/jhsZ7MHGBADsLDXSWzkKvCDJdtBT8cVS8Lv0LMcDaQ4oeLimWVWi1muNnK4ofxKmWVXTlm/Cdd+AmGrsDvOBi8bDJqgRnW5cAPg3Ww0lZoMQYvj4wasWpPclTQD5vrtdhWKtViLF8G1uUIrIj9dPQhRzBFvDRNT3IEUMTXLOVPDqeKeByxvcrhSBG/Oy/fchhXxPuGPIIc1iwJ8yZNKDlKFCXku3Zh5UggSvi3cSshR1d0qeAnPhWVA/LA7ZCAHIAcgByAHIAcgByAHIAcgByAHADIAcgByAHIAcgBtvgN+Hi5hzid2scAAAAASUVORK5CYII=">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22%ED%8D%BC%EC%8A%A4%ED%8A%B8%ED%94%BC%EC%A7%80%EC%98%A4%22%2C%22short_name%22%3A%22FirstPhysio%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%23101a33%22%2C%22theme_color%22%3A%22%23101a33%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage/png%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAFb0lEQVR42u2dTWhcZRSG39zONIrUlmBbjOAPtfGnbqxFxVqL0o3gTqytIiKajQtXpVIi7qQUfzZuxAZFRKg/C82mFQsiak1rKyhS0hhqKVqoHWwiDW0yM8aFulGj18nc755z7vMshzvhfmee%2B57zzcyd9Czrv0UA/0RGCQA5ADkAOQA5ADkAOQA5ADkAOQA5AJADkAOQA5ADkAOQA3xQq%2BayL910%2BP8%2B5Zf966pWpZ4qfE2wAxXQJbIcBQlRKVFCyZFYiPCiRJDDiBPxLPEth1ktYijiVQ4XWnhXxJ8c7rTwq4gnOVxr4VERH3KE0cKXItblCKmFF0XsyhFeC/uKZJjBej3JUTUzzK7aVlupphZmW0yGGUSIdTkww2A1ym8raGG2xWSYQYRYlAMzjFcpwwz8sCUHZrioWIYZ%2BGFFDsxwVL0MM/CjfDkww10luR0SypaD2PBYzwwz8KM0OTDDb22ZOaAkOYgN1%2BGRYQZ%2BpJYDMwL4wcwBaeUgNmKEB8kBCeUgNsKEB8kBqeQgNiKFB8kBSeQgNoKFB8kBxctBbMQLD5IDCpaD2AgZHiQHzEsX7rLvbmy8vUO3X1/4sj8/qod2FXsmc3OabWm2pbPn1JjSyTOaOKWvj%2BvIhKYvJHp1F3iTfo3ro6jLrke9dfXWteRiXblca6/94/FWW6Nj%2BmBUI6O6MFuN3QrkvRwX6c41ev5xffGSnrxPi2tx5WAU7Zi%2BJXr6Ae3fqZtXGR1LSY6SuWqF3hvS/etpKzBPo3lxUJs3IAfMM73ufEzrVgeSg4Gju/nxwqB664bGDpLDENes1MN3W/KVl2SBDDyhmeZfH6zXtPQSDVyhO27Qlo1avjTvXxu8V69/pLk55Oj2S2KHZkuNKTWmdOCoXh7R0BY9uinXE/v7dNt1Gh1zPnMwcORkpqln39Twh3mP33CTlbGDmSMRu97Rj41cR65dZeWckSMRsy29%2B1muI69eiRzV49CxXIetWIYc1eOnqXx7hEWq15CjYvTkPtLIVrZDOdiqdEDOftFqq9U2sWEhOdJx60C%2B7jNp5YS9vgk2Ptz5c5/bo1f3pj7h3ro235XryO9PM5BWjB0P6vK%2BXEd%2BNUFyVIaLFuuZrXrknrzHf/otcoTm9w/eVvdr/Y3aulGX5f7g7dTPOjSOHFFYyPTzd3bvtbKPZeawxYnTeutjQ%2BeDHFZotbVt2Nb3EJDDCkNv6MtxW6eEHCYyY/tr2vOJuRNjIC2ZHxp66hUd%2Bc7iufE1wdKYnNbwPu3eZ/eOWZIjNe1fdXBMIwf1/gGdt30jNXIUSLOlmaYmp3Xmz59g%2BOa4Dk/o3Hkf548cNDh2K5BMjgX%2BZAwkprPXi%2BQA5ADkAOQA5ACncrBhib1VITkAOQA5wJAcjB2BBw6SA5ADkANsycHYEXXgIDng3zD3n5ogVHLQWUKaQVuB4uUgPOLFBskBSeQgPILFBskBqeQgPCLFBskBCeUgPMLEBskBaeUgPGLEBskByeUgPALEBskBZchBeHiPjWKTAz9cm1F4W8EPv2Ywc0CpchAefmubBVgDZvhuK/jhsZ7MHGBADsLDXSWzkKvCDJdtBT8cVS8Lv0LMcDaQ4oeLimWVWi1muNnK4ofxKmWVXTlm/Cdd%2BAmGrsDvOBi8bDJqgRnW5cAPg3Ww0lZoMQYvj4wasWpPclTQD5vrtdhWKtViLF8G1uUIrIj9dPQhRzBFvDRNT3IEUMTXLOVPDqeKeByxvcrhSBG/Oy/fchhXxPuGPIIc1iwJ8yZNKDlKFCXku3Zh5UggSvi3cSshR1d0qeAnPhWVA/LA7ZCAHIAcgByAHIAcgByAHIAcgByAHADIAcgByAHIAcgBtvgN%2BHi5hzid2scAAAAASUVORK5CYII%3D%22%2C%22sizes%22%3A%22180x180%22%2C%22type%22%3A%22image/png%22%7D%5D%7D">
+<style>
+:root{
+  --bg:#f4f6f9; --card:#ffffff; --ink:#1a2233; --sub:#68738a; --line:#e3e8f0;
+  --brand:#1e5eff; --brand-soft:#eaf0ff; --ok:#0eab6b; --ok-soft:#e5f8f0;
+  --warn:#e8930c; --warn-soft:#fdf3e2; --bad:#e0364b; --bad-soft:#fdeaed;
+  --violet:#7048e8; --violet-soft:#f0ebfd;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+header{background:#101a33;color:#fff;padding:0 16px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:50}
+header h1{font-size:15px;font-weight:800;letter-spacing:-.3px;white-space:nowrap}
+header h1 span{color:#7ea2ff}
+nav{display:flex;gap:2px;height:100%;overflow-x:auto}
+nav button{background:none;border:none;color:#9aa7c4;font-size:13.5px;font-weight:600;padding:0 12px;cursor:pointer;height:100%;border-bottom:3px solid transparent;white-space:nowrap;font-family:inherit}
+nav button.on{color:#fff;border-bottom-color:var(--brand)}
+nav button:hover{color:#fff}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.sync-dot{font-size:11.5px;color:#9aa7c4;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.sync-dot i{width:8px;height:8px;border-radius:50%;background:#98a1b3;display:inline-block}
+.sync-dot.on i{background:#3ecf8e}
+.sync-dot.err i{background:#ff6b81}
+.bell{position:relative;background:none;border:none;color:#cdd6ea;font-size:18px;cursor:pointer}
+.bell b{position:absolute;top:-6px;right:-8px;background:var(--bad);color:#fff;font-size:10px;border-radius:99px;padding:1px 5px}
+main{max-width:1280px;margin:0 auto;padding:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+.card h2{font-size:15px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2 .hint{font-size:12px;color:var(--sub);font-weight:500}
+.grid-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.kpi .k-label{font-size:12px;color:var(--sub);font-weight:600}
+.kpi .k-val{font-size:23px;font-weight:800;margin-top:4px;letter-spacing:-.5px}
+.kpi .k-sub{font-size:11.5px;color:var(--sub);margin-top:2px}
+.kpi.alert{border-color:#f3c98b;background:#fffaf1}
+table{width:100%;border-collapse:collapse}
+th{font-size:12px;color:var(--sub);text-align:left;padding:8px 10px;border-bottom:2px solid var(--line);font-weight:700;white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.clickable{cursor:pointer}
+tr.clickable:hover{background:#f7f9fd}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:700}
+.b-blue{background:var(--brand-soft);color:var(--brand)}
+.b-ok{background:var(--ok-soft);color:var(--ok)}
+.b-warn{background:var(--warn-soft);color:var(--warn)}
+.b-bad{background:var(--bad-soft);color:var(--bad)}
+.b-vio{background:var(--violet-soft);color:var(--violet)}
+.b-gray{background:#eef1f6;color:var(--sub)}
+.progress{background:#edf0f6;border-radius:99px;height:8px;width:100px;overflow:hidden;display:inline-block;vertical-align:middle}
+.progress i{display:block;height:100%;background:var(--brand);border-radius:99px}
+.progress i.full{background:var(--bad)}
+.progress i.near{background:var(--warn)}
+button.btn{background:var(--brand);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+button.btn:hover{filter:brightness(1.08)}
+button.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+button.btn.ghost:hover{background:#f5f7fb;filter:none}
+button.btn.danger{background:var(--bad)}
+button.btn.warn{background:var(--warn)}
+button.btn.small{padding:5px 10px;font-size:12px}
+input,select,textarea{font-family:inherit;font-size:13.5px;padding:8px 10px;border:1px solid #cdd5e1;border-radius:8px;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:2px solid #b9ccff;border-color:var(--brand)}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.toolbar .sp{flex:1}
+.day-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.day-tabs button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--sub);font-family:inherit}
+.day-tabs button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:none;background:#fff;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--sub);font-family:inherit}
+.seg button.on{background:var(--brand);color:#fff}
+.sched-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+.sched{border-collapse:collapse;width:100%}
+.sched th{background:#f8fafd;padding:8px 6px;text-align:center;border-bottom:2px solid var(--line);border-right:1px solid var(--line);font-size:12px}
+.sched td{border:1px solid var(--line);padding:3px;min-width:110px;height:44px;vertical-align:top;cursor:pointer}
+.sched td:hover{background:#f5f8ff}
+.sched td.time{background:#f8fafd;font-weight:700;color:var(--sub);text-align:center;min-width:56px;cursor:default;font-size:12px}
+.sched td.blocked{background:repeating-linear-gradient(45deg,#f0f2f6,#f0f2f6 6px,#e6e9f0 6px,#e6e9f0 12px);cursor:not-allowed}
+.sched td.past-col{background:#fbfcfe}
+.chip{border-radius:6px;padding:3px 6px;font-size:11.5px;font-weight:600;margin-bottom:2px;line-height:1.3;cursor:pointer}
+.chip .cnt{font-weight:800}
+.chip .tt{opacity:.75;font-weight:700}
+.chip.booked{background:var(--brand-soft);color:#1a49c2;border:1px dashed #9db7f5}
+.chip.done{background:var(--ok-soft);color:#087a4c;border:1px solid #bfead7}
+.chip.noshow{background:var(--bad-soft);color:var(--bad);border:1px solid #f5c6cd}
+.chip.cancelled{background:#f0f2f6;color:#98a1b3;border:1px solid var(--line);text-decoration:line-through}
+.chip.late_cancel{background:var(--warn-soft);color:#8a5a08;border:1px solid #f3d9a8}
+.chip.over{outline:2px solid var(--bad)}
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:flex-start;justify-content:center;z-index:100;padding:36px 14px;overflow-y:auto}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:14px;padding:22px;width:100%;max-width:600px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal h3{font-size:16px;font-weight:800;margin-bottom:14px}
+.frm{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.frm .full{grid-column:1/-1}
+.frm label{display:block;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:4px}
+.frm input,.frm select,.frm textarea{width:100%}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.note{font-size:12.5px;color:var(--sub);background:#f7f9fd;border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.6}
+.note.warn{background:var(--warn-soft);border-color:#f3d9a8;color:#8a5a08}
+.note.bad{background:var(--bad-soft);border-color:#f5c6cd;color:#a1202f}
+.note.ok{background:var(--ok-soft);border-color:#bfead7;color:#087a4c}
+.bars{display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:10px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.bar-col .bar{width:70%;max-width:48px;background:linear-gradient(180deg,#4d82ff,#1e5eff);border-radius:6px 6px 2px 2px;min-height:2px}
+.bar-col .bv{font-size:11px;font-weight:700}
+.bar-col .bl{font-size:11px;color:var(--sub)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.two-col{grid-template-columns:1fr}}
+.help p{margin-bottom:10px;line-height:1.75}
+.help h4{margin:16px 0 6px;font-size:14px}
+.help .src{color:var(--sub);font-size:12px}
+.help ol{margin:6px 0 10px 20px;line-height:1.9}
+.pill-row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.empty{color:var(--sub);text-align:center;padding:22px;font-size:13px}
+.mono{font-variant-numeric:tabular-nums}
+.hist{max-height:190px;overflow-y:auto;border:1px solid var(--line);border-radius:8px}
+.hist table td,.hist table th{padding:6px 10px;font-size:12.5px}
+.trainer-tag{display:inline-flex;align-items:center;gap:6px;background:#eef1f6;border-radius:8px;padding:5px 10px;font-size:13px;font-weight:600}
+.trainer-tag b{cursor:pointer;color:var(--bad)}
+.duty-line{margin-top:3px;display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
+.duty-b{font-size:9.5px;font-weight:800;border-radius:4px;padding:1px 5px}
+code.sql{display:block;background:#101a33;color:#cfe0ff;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;line-height:1.6;margin:8px 0}
+.block-grid{border-collapse:collapse}
+.block-grid td,.block-grid th{border:1px solid var(--line);padding:0;text-align:center;font-size:11.5px}
+.block-grid td{width:44px;height:26px;cursor:pointer}
+.block-grid td.b{background:repeating-linear-gradient(45deg,#f6d7db,#f6d7db 5px,#f0c2c8 5px,#f0c2c8 10px)}
+.evt{padding:8px 10px;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.5}
+.evt .t{color:var(--sub);font-size:11px}
+/* ---------- 모바일 ---------- */
+@media(max-width:700px){
+  header{height:50px;padding:0 10px;gap:8px}
+  header h1{font-size:13px}
+  nav button{padding:0 8px;font-size:12.5px}
+  main{padding:10px}
+  .toolbar{gap:6px}
+  .toolbar .btn{padding:7px 10px;font-size:12px}
+  .grid-kpi{grid-template-columns:repeat(2,1fr);gap:8px}
+  .kpi .k-val{font-size:19px}
+  .card{padding:12px;border-radius:10px}
+  .sched td{min-width:96px;height:40px}
+  .sched td.time{min-width:44px}
+  .modal{padding:16px;border-radius:12px}
+  .frm{grid-template-columns:1fr}
+  .overlay{padding:14px 8px}
+  th,td{padding:7px 6px}
+  .progress{width:64px}
+  .slot{width:calc(25% - 5px)}
+  input,select,textarea{font-size:16px} /* iOS 확대 방지 */
+}
+/* 회원 예약 모드 */
+.book-wrap{max-width:640px;margin:0 auto;padding:20px 14px}
+.book-hd{text-align:center;margin-bottom:16px}
+.book-hd h1{font-size:20px;font-weight:800}
+.book-hd h1 span{color:var(--brand)}
+.slot-day{margin-bottom:10px}
+.slot-day .d{font-weight:800;font-size:13px;margin-bottom:6px}
+.slots{display:flex;flex-wrap:wrap;gap:6px}
+.slot{border:1px solid var(--line);border-radius:8px;padding:7px 0;font-size:12.5px;font-weight:700;cursor:pointer;background:#fff;width:64px;text-align:center;font-family:inherit}
+.slot.open:hover{border-color:var(--brand);color:var(--brand)}
+.slot.mine{background:var(--brand);border-color:var(--brand);color:#fff}
+.slot.taken{background:#f0f2f6;color:#b6bdcc;cursor:not-allowed;text-decoration:line-through}
+.slot.closed{background:#fbfbfd;color:#ccd2df;cursor:not-allowed}
+.slot.blockedS{background:repeating-linear-gradient(45deg,#f0f2f6,#f0f2f6 5px,#e6e9f0 5px,#e6e9f0 10px);color:#b6bdcc;cursor:not-allowed}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+
+<script>
+/* ================= 상수 ================= */
+const KEY='firstphysio_claude_v3';
+const CFGKEY='firstphysio_claude_synccfg';
+const SEENKEY='firstphysio_claude_seen';
+const FOLLOW=['대기','연락함','재등록 확정','보류','이탈'];
+const PROGRAMS=['PT','피티+','그룹','GX','원포인트'];
+const HOURS=[...Array(14)].map((_,i)=>9+i); /* 9:00 ~ 22:00 */
+const DAYN=['월','화','수','목','금','토','일'];
+const CANCEL_HOURS=12;               /* 12시간 이내 취소 → 차감 대기 */
+const BOOK_LEAD_HOURS=12;            /* 12시간 이내 신규 예약 불가 (회원) */
+const DEFAULT_DUTY={0:{am:'김강윤',pm:'김강윤'},1:{am:'장동진',pm:'김강윤'},2:{am:'장동진',pm:'장동진'},3:{am:'신종수',pm:'홍웅표'},4:{am:'신종수',pm:'신종수'},5:{am:'홍웅표',pm:'홍웅표'},6:{am:'',pm:''}};
+const PALETTE=['#1e5eff','#e8590c','#0ca678','#7048e8','#d6336c','#0c8599','#f08c00','#5c940d','#845ef7','#e03131'];
+const REAL_SEED={"members":[{"id":"m_0","name":"Tasya","trainer":"김택연","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":45,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_0p","date":"","count":50,"perPrice":30000,"amount":1500000,"memo":"이관"}]},{"id":"m_1","name":"강다윤","trainer":"정병건","program":"PT","status":"active","phone":"","referredBy":"","pref":"오전 9~12시","goal":"암재활 + 다이어트 (이벤트)","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":22,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_1p","date":"","count":24,"perPrice":33858,"amount":812592,"memo":"이관"}]},{"id":"m_2","name":"강민섭","trainer":"김택연","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":19,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_2p","date":"","count":24,"perPrice":30000,"amount":720000,"memo":"이관"}]},{"id":"m_3","name":"강영식","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":5,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_3p","date":"","count":11,"perPrice":30000,"amount":330000,"memo":"이관"}]},{"id":"m_4","name":"강영은","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"월·수 8시, 금 6시","goal":"Round Sh·측만증 체형교정, 근력증진","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":5,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_4p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_5","name":"고민정","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"중족골 5번 수술 / 여자 축구선수","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":4,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_5p","date":"","count":10,"perPrice":31500,"amount":315000,"memo":"이관"}]},{"id":"m_6","name":"김나영","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"화 11시·목 11시(해피아워)","goal":"Rt Iliac Crest / Rt TFL line","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":29,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_6p","date":"","count":30,"perPrice":25000,"amount":750000,"memo":"이관"}]},{"id":"m_7","name":"김난숙","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":125,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_7p","date":"","count":134,"perPrice":25000,"amount":3350000,"memo":"이관"}]},{"id":"m_8","name":"김도은","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"월 6시·목 10시 (월수금 수영)","goal":"Rt Sh SLAP·건염, Lt 무릎 통증 / 근력·다이어트","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":26,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_8p","date":"","count":30,"perPrice":25000,"amount":750000,"memo":"이관"}]},{"id":"m_9","name":"김동범","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"이진현","pref":"7시 이후","goal":"이진현님 소개(남편)","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":26,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_9p","date":"","count":42,"perPrice":30000,"amount":1260000,"memo":"이관"}]},{"id":"m_10","name":"김미란","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"오전 10시","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":20,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_10p","date":"","count":40,"perPrice":30000,"amount":1200000,"memo":"이관"}]},{"id":"m_11","name":"김미희","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":17,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_11p","date":"","count":24,"perPrice":30000,"amount":720000,"memo":"이관"}]},{"id":"m_12","name":"김보경","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"오전 9시","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":13,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_12p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_13","name":"김선아","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"염서윤","pref":"화·목 1~4시","goal":"RCRSP, DDD, Neck Pain / 서윤님 소개","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":3,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_13p","date":"","count":20,"perPrice":38250,"amount":765000,"memo":"이관"}]},{"id":"m_14","name":"김수완","trainer":"장동진","program":"피티+","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":50,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_14p","date":"","count":88,"perPrice":25000,"amount":2200000,"memo":"이관"}]},{"id":"m_15","name":"김수진","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"평일 7시 이후","goal":"LBP","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":9,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_15p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_16","name":"김영돈","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"화·목 오후 7시","goal":"Both glutes, Plantaris","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":37,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_16p","date":"","count":60,"perPrice":30000,"amount":1800000,"memo":"이관"}]},{"id":"m_17","name":"김영선","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":39,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_17p","date":"","count":60,"perPrice":30000,"amount":1800000,"memo":"이관"}]},{"id":"m_18","name":"김영옥","trainer":"김택연","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":58,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_18p","date":"","count":70,"perPrice":30000,"amount":2100000,"memo":"이관"}]},{"id":"m_19","name":"김우성","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":9,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_19p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_20","name":"김종현","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"8시 이후","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":64,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_20p","date":"","count":80,"perPrice":30000,"amount":2400000,"memo":"이관"}]},{"id":"m_21","name":"김준후","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":21,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_21p","date":"","count":30,"perPrice":30000,"amount":900000,"memo":"이관"}]},{"id":"m_22","name":"김진우","trainer":"신종수","program":"피티+","status":"active","phone":"","referredBy":"","pref":"화·목 오전 9시","goal":"Rt LBP, Rt 무릎 통증 / 건강증진","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":30,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_22p","date":"","count":60,"perPrice":26500,"amount":1590000,"memo":"이관"}]},{"id":"m_23","name":"김춘구","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":79,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_23p","date":"","count":100,"perPrice":25000,"amount":2500000,"memo":"이관"}]},{"id":"m_24","name":"김태영","trainer":"김택연","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":47,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_24p","date":"","count":68,"perPrice":30000,"amount":2040000,"memo":"이관"}]},{"id":"m_25","name":"김형준","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"금 10시","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":20,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_25p","date":"","count":40,"perPrice":25515,"amount":1020600,"memo":"이관"}]},{"id":"m_26","name":"문인","trainer":"장동진","program":"피티+","status":"active","phone":"","referredBy":"","pref":"7시 이후","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":67,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_26p","date":"","count":90,"perPrice":25000,"amount":2250000,"memo":"이관"}]},{"id":"m_27","name":"박광호","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":3,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_27p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_28","name":"박소연","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"화·목 오전 10시","goal":"Rt Hip·Knee, 근무 Neck / 건강증진·다이어트","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":21,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_28p","date":"","count":24,"perPrice":30000,"amount":720000,"memo":"이관"}]},{"id":"m_29","name":"박소연(B)","trainer":"정병건","program":"PT","status":"active","phone":"","referredBy":"","pref":"화·목 오전 10시","goal":"Rt Hip·Knee, 근무 Neck / 건강증진·다이어트","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":39,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_29p","date":"","count":50,"perPrice":30000,"amount":1500000,"memo":"이관"}]},{"id":"m_30","name":"박익규","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":3,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_30p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_31","name":"박창미","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"월·수 11시","goal":"영돈님 장모님","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":2,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_31p","date":"","count":10,"perPrice":31500,"amount":315000,"memo":"이관"}]},{"id":"m_32","name":"배창수","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":5,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_32p","date":"","count":20,"perPrice":35000,"amount":700000,"memo":"이관"}]},{"id":"m_33","name":"배홍회","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":11,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_33p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_34","name":"백승준","trainer":"김택연","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":8,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_34p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_35","name":"백주하","trainer":"김택연","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":22,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_35p","date":"","count":30,"perPrice":30000,"amount":900000,"memo":"이관"}]},{"id":"m_36","name":"서장철","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":1,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_36p","date":"","count":15,"perPrice":28350,"amount":425250,"memo":"이관"}]},{"id":"m_37","name":"신다혜","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"화·수 4시 이후 / 금 4시","goal":"Round Sh 체형교정, 다이어트","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":6,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_37p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_38","name":"신유원","trainer":"김택연","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":83,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_38p","date":"","count":110,"perPrice":30000,"amount":3300000,"memo":"이관"}]},{"id":"m_39","name":"신현정","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"오후 9시","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":2,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_39p","date":"","count":10,"perPrice":35000,"amount":350000,"memo":"이관"}]},{"id":"m_40","name":"양은실","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":1,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_40p","date":"","count":20,"perPrice":28400,"amount":568000,"memo":"이관"}]},{"id":"m_41","name":"양지혜","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"저녁 7시 이후","goal":"산후 근력재활 / 다이어트","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":8,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_41p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_42","name":"연주예","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"10시","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":20,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_42p","date":"","count":30,"perPrice":29250,"amount":877500,"memo":"이관"}]},{"id":"m_43","name":"오주연","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":17,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_43p","date":"","count":30,"perPrice":30000,"amount":900000,"memo":"이관"}]},{"id":"m_44","name":"오지수","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":25,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_44p","date":"","count":44,"perPrice":30000,"amount":1320000,"memo":"이관"}]},{"id":"m_45","name":"오지수(B)","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":23,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_45p","date":"","count":24,"perPrice":30000,"amount":720000,"memo":"이관"}]},{"id":"m_46","name":"유예지","trainer":"김택연","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":67,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_46p","date":"","count":92,"perPrice":30000,"amount":2760000,"memo":"이관"}]},{"id":"m_47","name":"윤예슬","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":15,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_47p","date":"","count":24,"perPrice":30000,"amount":720000,"memo":"이관"}]},{"id":"m_48","name":"이도연","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":4,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_48p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_49","name":"이상희","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":86,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_49p","date":"","count":100,"perPrice":25000,"amount":2500000,"memo":"이관"}]},{"id":"m_50","name":"이승훈","trainer":"신종수","program":"피티+","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":35,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_50p","date":"","count":40,"perPrice":30000,"amount":1200000,"memo":"이관"}]},{"id":"m_51","name":"이연심","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":0,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_51p","date":"","count":20,"perPrice":28350,"amount":567000,"memo":"이관"}]},{"id":"m_52","name":"이영석","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":54,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_52p","date":"","count":70,"perPrice":25000,"amount":1750000,"memo":"이관"}]},{"id":"m_53","name":"이영숙","trainer":"정병건","program":"PT","status":"active","phone":"","referredBy":"김영돈","pref":"월·금 11시 (충주-오송 기차)","goal":"Complex LBP / 영돈님 소개","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":19,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_53p","date":"","count":20,"perPrice":40000,"amount":800000,"memo":"이관"}]},{"id":"m_54","name":"이유정","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"10시","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":7,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_54p","date":"","count":20,"perPrice":28350,"amount":567000,"memo":"이관"}]},{"id":"m_55","name":"이재덕","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":19,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_55p","date":"","count":24,"perPrice":30000,"amount":720000,"memo":"이관"}]},{"id":"m_56","name":"이정훈","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":33,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_56p","date":"","count":40,"perPrice":30000,"amount":1200000,"memo":"이관"}]},{"id":"m_57","name":"이호석","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":3,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_57p","date":"","count":20,"perPrice":28350,"amount":567000,"memo":"이관"}]},{"id":"m_58","name":"전효연","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":4,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_58p","date":"","count":30,"perPrice":30000,"amount":900000,"memo":"이관"}]},{"id":"m_59","name":"전휘승","trainer":"김택연","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":20,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_59p","date":"","count":30,"perPrice":30000,"amount":900000,"memo":"이관"}]},{"id":"m_60","name":"정구연","trainer":"김택연","program":"피티+","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":44,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_60p","date":"","count":60,"perPrice":30000,"amount":1800000,"memo":"이관"}]},{"id":"m_61","name":"정순덕","trainer":"홍웅표","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":105,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_61p","date":"","count":121,"perPrice":25000,"amount":3025000,"memo":"이관"}]},{"id":"m_62","name":"조만기","trainer":"김택연","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":9,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_62p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_63","name":"조혜란","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":105,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_63p","date":"","count":111,"perPrice":30000,"amount":3330000,"memo":"이관"}]},{"id":"m_64","name":"주하나","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":147,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_64p","date":"","count":151,"perPrice":25000,"amount":3775000,"memo":"이관"}]},{"id":"m_65","name":"지창민","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":18,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_65p","date":"","count":20,"perPrice":35000,"amount":700000,"memo":"이관"}]},{"id":"m_66","name":"최보영","trainer":"장동진","program":"PT","status":"active","phone":"","referredBy":"","pref":"9시","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":43,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_66p","date":"","count":60,"perPrice":30000,"amount":1800000,"memo":"이관"}]},{"id":"m_67","name":"최임정","trainer":"김강윤","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":93,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_67p","date":"","count":104,"perPrice":25000,"amount":2600000,"memo":"이관"}]},{"id":"m_68","name":"최현성","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":42,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_68p","date":"","count":64,"perPrice":25000,"amount":1600000,"memo":"이관"}]},{"id":"m_69","name":"평강","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":7,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_69p","date":"","count":20,"perPrice":30000,"amount":600000,"memo":"이관"}]},{"id":"m_70","name":"한혜상","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":3,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_70p","date":"","count":20,"perPrice":27000,"amount":540000,"memo":"이관"}]},{"id":"m_71","name":"홍상아","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":7,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_71p","date":"","count":10,"perPrice":30000,"amount":300000,"memo":"이관"}]},{"id":"m_72","name":"황인엽","trainer":"신종수","program":"PT","status":"active","phone":"","referredBy":"","pref":"","goal":"","notes":"2026-07 퍼피짐 스케줄표에서 이관","carryUsed":4,"followUp":{"status":"대기","memo":""},"packages":[{"id":"m_72p","date":"","count":10,"perPrice":31500,"amount":315000,"memo":"이관"}]}],"sessions":[{"memberId":"m_0","trainer":"김택연","date":"2026-07-16","hour":15,"status":"booked"},{"memberId":"m_1","trainer":"정병건","date":"2026-07-02","hour":11,"status":"done"},{"memberId":"m_1","trainer":"정병건","date":"2026-07-07","hour":11,"status":"done"},{"memberId":"m_2","trainer":"김택연","date":"2026-07-01","hour":15,"status":"done"},{"memberId":"m_2","trainer":"김택연","date":"2026-07-07","hour":10,"status":"done"},{"memberId":"m_2","trainer":"김택연","date":"2026-07-08","hour":10,"status":"done"},{"memberId":"m_2","trainer":"김택연","date":"2026-07-10","hour":10,"status":"done"},{"memberId":"m_2","trainer":"김택연","date":"2026-07-13","hour":11,"status":"booked"},{"memberId":"m_3","trainer":"신종수","date":"2026-07-03","hour":14,"status":"done"},{"memberId":"m_4","trainer":"정병건","date":"2026-07-06","hour":20,"status":"done"},{"memberId":"m_4","trainer":"정병건","date":"2026-07-08","hour":20,"status":"done"},{"memberId":"m_4","trainer":"정병건","date":"2026-07-13","hour":16,"status":"booked"},{"memberId":"m_4","trainer":"정병건","date":"2026-07-15","hour":20,"status":"booked"},{"memberId":"m_5","trainer":"장동진","date":"2026-07-03","hour":14,"status":"done"},{"memberId":"m_5","trainer":"장동진","date":"2026-07-14","hour":15,"status":"booked"},{"memberId":"m_6","trainer":"정병건","date":"2026-07-15","hour":19,"status":"booked"},{"memberId":"m_7","trainer":"신종수","date":"2026-07-01","hour":9,"status":"done"},{"memberId":"m_7","trainer":"신종수","date":"2026-07-03","hour":9,"status":"done"},{"memberId":"m_7","trainer":"신종수","date":"2026-07-06","hour":9,"status":"done"},{"memberId":"m_7","trainer":"신종수","date":"2026-07-08","hour":9,"status":"done"},{"memberId":"m_7","trainer":"신종수","date":"2026-07-10","hour":9,"status":"done"},{"memberId":"m_8","trainer":"정병건","date":"2026-07-02","hour":22,"status":"done"},{"memberId":"m_8","trainer":"정병건","date":"2026-07-09","hour":22,"status":"done"},{"memberId":"m_8","trainer":"정병건","date":"2026-07-14","hour":22,"status":"booked"},{"memberId":"m_9","trainer":"김강윤","date":"2026-07-02","hour":11,"status":"done"},{"memberId":"m_9","trainer":"김강윤","date":"2026-07-06","hour":11,"status":"done"},{"memberId":"m_9","trainer":"김강윤","date":"2026-07-09","hour":11,"status":"done"},{"memberId":"m_10","trainer":"김강윤","date":"2026-07-02","hour":11,"status":"done"},{"memberId":"m_10","trainer":"김강윤","date":"2026-07-07","hour":10,"status":"done"},{"memberId":"m_10","trainer":"김강윤","date":"2026-07-09","hour":10,"status":"done"},{"memberId":"m_11","trainer":"장동진","date":"2026-07-01","hour":15,"status":"done"},{"memberId":"m_11","trainer":"장동진","date":"2026-07-13","hour":11,"status":"booked"},{"memberId":"m_11","trainer":"장동진","date":"2026-07-14","hour":11,"status":"booked"},{"memberId":"m_11","trainer":"장동진","date":"2026-07-16","hour":11,"status":"booked"},{"memberId":"m_12","trainer":"장동진","date":"2026-07-03","hour":11,"status":"done"},{"memberId":"m_12","trainer":"장동진","date":"2026-07-07","hour":9,"status":"done"},{"memberId":"m_12","trainer":"장동진","date":"2026-07-21","hour":9,"status":"booked"},{"memberId":"m_12","trainer":"장동진","date":"2026-07-24","hour":9,"status":"booked"},{"memberId":"m_13","trainer":"정병건","date":"2026-07-02","hour":17,"status":"done"},{"memberId":"m_13","trainer":"정병건","date":"2026-07-06","hour":17,"status":"done"},{"memberId":"m_13","trainer":"정병건","date":"2026-07-13","hour":17,"status":"booked"},{"memberId":"m_14","trainer":"장동진","date":"2026-07-02","hour":19,"status":"done"},{"memberId":"m_14","trainer":"장동진","date":"2026-07-16","hour":19,"status":"booked"},{"memberId":"m_15","trainer":"정병건","date":"2026-07-07","hour":20,"status":"done"},{"memberId":"m_15","trainer":"정병건","date":"2026-07-09","hour":20,"status":"done"},{"memberId":"m_15","trainer":"정병건","date":"2026-07-14","hour":20,"status":"booked"},{"memberId":"m_16","trainer":"정병건","date":"2026-07-02","hour":19,"status":"done"},{"memberId":"m_16","trainer":"정병건","date":"2026-07-14","hour":19,"status":"booked"},{"memberId":"m_16","trainer":"정병건","date":"2026-07-16","hour":19,"status":"booked"},{"memberId":"m_17","trainer":"신종수","date":"2026-07-03","hour":18,"status":"done"},{"memberId":"m_18","trainer":"김택연","date":"2026-07-07","hour":9,"status":"done"},{"memberId":"m_19","trainer":"김강윤","date":"2026-07-02","hour":20,"status":"done"},{"memberId":"m_19","trainer":"김강윤","date":"2026-07-07","hour":20,"status":"done"},{"memberId":"m_19","trainer":"김강윤","date":"2026-07-09","hour":20,"status":"done"},{"memberId":"m_20","trainer":"장동진","date":"2026-07-15","hour":19,"status":"booked"},{"memberId":"m_21","trainer":"신종수","date":"2026-07-16","hour":16,"status":"booked"},{"memberId":"m_22","trainer":"정병건","date":"2026-07-02","hour":9,"status":"done"},{"memberId":"m_22","trainer":"정병건","date":"2026-07-07","hour":9,"status":"done"},{"memberId":"m_23","trainer":"김강윤","date":"2026-07-01","hour":11,"status":"done"},{"memberId":"m_23","trainer":"김강윤","date":"2026-07-06","hour":10,"status":"done"},{"memberId":"m_24","trainer":"김택연","date":"2026-07-01","hour":18,"status":"done"},{"memberId":"m_24","trainer":"김택연","date":"2026-07-06","hour":18,"status":"done"},{"memberId":"m_24","trainer":"김택연","date":"2026-07-08","hour":18,"status":"done"},{"memberId":"m_24","trainer":"김택연","date":"2026-07-13","hour":18,"status":"booked"},{"memberId":"m_24","trainer":"김택연","date":"2026-07-15","hour":18,"status":"booked"},{"memberId":"m_25","trainer":"장동진","date":"2026-07-07","hour":22,"status":"done"},{"memberId":"m_25","trainer":"장동진","date":"2026-07-14","hour":22,"status":"booked"},{"memberId":"m_26","trainer":"장동진","date":"2026-07-02","hour":18,"status":"done"},{"memberId":"m_26","trainer":"장동진","date":"2026-07-08","hour":19,"status":"done"},{"memberId":"m_26","trainer":"장동진","date":"2026-07-14","hour":19,"status":"booked"},{"memberId":"m_27","trainer":"신종수","date":"2026-07-01","hour":18,"status":"done"},{"memberId":"m_28","trainer":"김강윤","date":"2026-07-02","hour":19,"status":"done"},{"memberId":"m_28","trainer":"김강윤","date":"2026-07-08","hour":19,"status":"done"},{"memberId":"m_29","trainer":"정병건","date":"2026-07-02","hour":10,"status":"done"},{"memberId":"m_30","trainer":"김강윤","date":"2026-07-01","hour":18,"status":"done"},{"memberId":"m_30","trainer":"김강윤","date":"2026-07-07","hour":18,"status":"done"},{"memberId":"m_30","trainer":"김강윤","date":"2026-07-14","hour":18,"status":"booked"},{"memberId":"m_31","trainer":"장동진","date":"2026-07-01","hour":9,"status":"done"},{"memberId":"m_31","trainer":"장동진","date":"2026-07-06","hour":9,"status":"done"},{"memberId":"m_31","trainer":"장동진","date":"2026-07-08","hour":9,"status":"done"},{"memberId":"m_31","trainer":"장동진","date":"2026-07-15","hour":11,"status":"booked"},{"memberId":"m_32","trainer":"김강윤","date":"2026-07-08","hour":21,"status":"done"},{"memberId":"m_33","trainer":"김강윤","date":"2026-07-02","hour":10,"status":"done"},{"memberId":"m_34","trainer":"김택연","date":"2026-07-11","hour":13,"status":"done"},{"memberId":"m_35","trainer":"김택연","date":"2026-07-14","hour":18,"status":"booked"},{"memberId":"m_36","trainer":"장동진","date":"2026-07-13","hour":19,"status":"booked"},{"memberId":"m_37","trainer":"정병건","date":"2026-07-02","hour":18,"status":"done"},{"memberId":"m_37","trainer":"정병건","date":"2026-07-07","hour":18,"status":"done"},{"memberId":"m_38","trainer":"김택연","date":"2026-07-07","hour":21,"status":"done"},{"memberId":"m_38","trainer":"김택연","date":"2026-07-10","hour":16,"status":"done"},{"memberId":"m_38","trainer":"김택연","date":"2026-07-14","hour":21,"status":"booked"},{"memberId":"m_39","trainer":"장동진","date":"2026-07-07","hour":21,"status":"done"},{"memberId":"m_39","trainer":"장동진","date":"2026-07-14","hour":21,"status":"booked"},{"memberId":"m_40","trainer":"신종수","date":"2026-07-01","hour":11,"status":"done"},{"memberId":"m_40","trainer":"신종수","date":"2026-07-03","hour":11,"status":"done"},{"memberId":"m_40","trainer":"신종수","date":"2026-07-15","hour":11,"status":"booked"},{"memberId":"m_41","trainer":"정병건","date":"2026-07-07","hour":21,"status":"done"},{"memberId":"m_41","trainer":"정병건","date":"2026-07-09","hour":21,"status":"done"},{"memberId":"m_41","trainer":"정병건","date":"2026-07-14","hour":21,"status":"booked"},{"memberId":"m_41","trainer":"정병건","date":"2026-07-16","hour":21,"status":"booked"},{"memberId":"m_42","trainer":"장동진","date":"2026-07-10","hour":9,"status":"done"},{"memberId":"m_43","trainer":"김강윤","date":"2026-07-07","hour":21,"status":"done"},{"memberId":"m_44","trainer":"장동진","date":"2026-07-13","hour":16,"status":"booked"},{"memberId":"m_44","trainer":"장동진","date":"2026-07-15","hour":16,"status":"booked"},{"memberId":"m_45","trainer":"장동진","date":"2026-07-02","hour":9,"status":"done"},{"memberId":"m_46","trainer":"김택연","date":"2026-07-01","hour":14,"status":"done"},{"memberId":"m_46","trainer":"김택연","date":"2026-07-14","hour":14,"status":"booked"},{"memberId":"m_46","trainer":"김택연","date":"2026-07-16","hour":14,"status":"booked"},{"memberId":"m_47","trainer":"신종수","date":"2026-07-03","hour":19,"status":"done"},{"memberId":"m_47","trainer":"신종수","date":"2026-07-06","hour":21,"status":"done"},{"memberId":"m_47","trainer":"신종수","date":"2026-07-13","hour":21,"status":"booked"},{"memberId":"m_47","trainer":"신종수","date":"2026-07-14","hour":19,"status":"booked"},{"memberId":"m_48","trainer":"신종수","date":"2026-07-02","hour":19,"status":"done"},{"memberId":"m_48","trainer":"신종수","date":"2026-07-13","hour":19,"status":"booked"},{"memberId":"m_48","trainer":"신종수","date":"2026-07-15","hour":19,"status":"booked"},{"memberId":"m_49","trainer":"신종수","date":"2026-07-14","hour":14,"status":"booked"},{"memberId":"m_49","trainer":"신종수","date":"2026-07-14","hour":15,"status":"booked"},{"memberId":"m_49","trainer":"신종수","date":"2026-07-16","hour":14,"status":"booked"},{"memberId":"m_49","trainer":"신종수","date":"2026-07-16","hour":15,"status":"booked"},{"memberId":"m_49","trainer":"신종수","date":"2026-07-21","hour":14,"status":"booked"},{"memberId":"m_49","trainer":"신종수","date":"2026-07-21","hour":15,"status":"booked"},{"memberId":"m_49","trainer":"신종수","date":"2026-07-23","hour":14,"status":"booked"},{"memberId":"m_49","trainer":"신종수","date":"2026-07-23","hour":15,"status":"booked"},{"memberId":"m_49","trainer":"신종수","date":"2026-07-28","hour":14,"status":"booked"},{"memberId":"m_49","trainer":"신종수","date":"2026-07-28","hour":15,"status":"booked"},{"memberId":"m_50","trainer":"신종수","date":"2026-07-03","hour":11,"status":"done"},{"memberId":"m_50","trainer":"신종수","date":"2026-07-13","hour":11,"status":"booked"},{"memberId":"m_50","trainer":"신종수","date":"2026-07-15","hour":15,"status":"booked"},{"memberId":"m_51","trainer":"장동진","date":"2026-07-01","hour":10,"status":"done"},{"memberId":"m_51","trainer":"장동진","date":"2026-07-14","hour":16,"status":"booked"},{"memberId":"m_51","trainer":"장동진","date":"2026-07-16","hour":16,"status":"booked"},{"memberId":"m_52","trainer":"신종수","date":"2026-07-06","hour":20,"status":"done"},{"memberId":"m_52","trainer":"신종수","date":"2026-07-10","hour":21,"status":"done"},{"memberId":"m_52","trainer":"신종수","date":"2026-07-15","hour":21,"status":"booked"},{"memberId":"m_52","trainer":"신종수","date":"2026-07-16","hour":21,"status":"booked"},{"memberId":"m_53","trainer":"정병건","date":"2026-07-01","hour":11,"status":"done"},{"memberId":"m_54","trainer":"장동진","date":"2026-07-02","hour":10,"status":"done"},{"memberId":"m_54","trainer":"장동진","date":"2026-07-06","hour":9,"status":"done"},{"memberId":"m_54","trainer":"장동진","date":"2026-07-13","hour":11,"status":"booked"},{"memberId":"m_55","trainer":"김강윤","date":"2026-07-03","hour":19,"status":"done"},{"memberId":"m_55","trainer":"김강윤","date":"2026-07-10","hour":11,"status":"done"},{"memberId":"m_56","trainer":"장동진","date":"2026-07-06","hour":20,"status":"done"},{"memberId":"m_56","trainer":"장동진","date":"2026-07-09","hour":20,"status":"done"},{"memberId":"m_56","trainer":"장동진","date":"2026-07-13","hour":20,"status":"booked"},{"memberId":"m_56","trainer":"장동진","date":"2026-07-16","hour":20,"status":"booked"},{"memberId":"m_57","trainer":"김강윤","date":"2026-07-01","hour":10,"status":"done"},{"memberId":"m_57","trainer":"김강윤","date":"2026-07-10","hour":10,"status":"done"},{"memberId":"m_58","trainer":"장동진","date":"2026-07-02","hour":17,"status":"done"},{"memberId":"m_58","trainer":"장동진","date":"2026-07-14","hour":17,"status":"booked"},{"memberId":"m_59","trainer":"김택연","date":"2026-07-11","hour":20,"status":"done"},{"memberId":"m_60","trainer":"김택연","date":"2026-07-14","hour":19,"status":"booked"},{"memberId":"m_60","trainer":"김택연","date":"2026-07-16","hour":19,"status":"booked"},{"memberId":"m_61","trainer":"홍웅표","date":"2026-07-13","hour":16,"status":"booked"},{"memberId":"m_61","trainer":"홍웅표","date":"2026-07-15","hour":16,"status":"booked"},{"memberId":"m_62","trainer":"김택연","date":"2026-07-06","hour":21,"status":"done"},{"memberId":"m_62","trainer":"김택연","date":"2026-07-08","hour":21,"status":"done"},{"memberId":"m_62","trainer":"김택연","date":"2026-07-13","hour":19,"status":"booked"},{"memberId":"m_62","trainer":"김택연","date":"2026-07-15","hour":19,"status":"booked"},{"memberId":"m_63","trainer":"장동진","date":"2026-07-03","hour":10,"status":"done"},{"memberId":"m_63","trainer":"장동진","date":"2026-07-16","hour":11,"status":"booked"},{"memberId":"m_64","trainer":"신종수","date":"2026-07-02","hour":10,"status":"done"},{"memberId":"m_65","trainer":"김강윤","date":"2026-07-09","hour":21,"status":"done"},{"memberId":"m_66","trainer":"장동진","date":"2026-07-02","hour":21,"status":"done"},{"memberId":"m_66","trainer":"장동진","date":"2026-07-08","hour":21,"status":"done"},{"memberId":"m_66","trainer":"장동진","date":"2026-07-09","hour":21,"status":"done"},{"memberId":"m_66","trainer":"장동진","date":"2026-07-15","hour":21,"status":"booked"},{"memberId":"m_66","trainer":"장동진","date":"2026-07-16","hour":21,"status":"booked"},{"memberId":"m_67","trainer":"김강윤","date":"2026-07-02","hour":18,"status":"done"},{"memberId":"m_68","trainer":"신종수","date":"2026-07-03","hour":17,"status":"done"},{"memberId":"m_69","trainer":"신종수","date":"2026-07-09","hour":17,"status":"done"},{"memberId":"m_70","trainer":"신종수","date":"2026-07-02","hour":11,"status":"done"},{"memberId":"m_70","trainer":"신종수","date":"2026-07-07","hour":11,"status":"done"},{"memberId":"m_70","trainer":"신종수","date":"2026-07-14","hour":11,"status":"booked"},{"memberId":"m_70","trainer":"신종수","date":"2026-07-16","hour":11,"status":"booked"},{"memberId":"m_71","trainer":"신종수","date":"2026-07-03","hour":10,"status":"done"},{"memberId":"m_71","trainer":"신종수","date":"2026-07-16","hour":11,"status":"booked"},{"memberId":"m_72","trainer":"신종수","date":"2026-07-01","hour":10,"status":"done"},{"memberId":"m_72","trainer":"신종수","date":"2026-07-14","hour":11,"status":"booked"}]};
+
+/* ================= 데이터 ================= */
+let DB=null;
+function fresh(){return {members:[],sessions:[],blocks:[],events:[],deleted:[],trainers:['홍웅표','신종수','김택연','정병건','장동진','김강윤'],trainerMeta:{},duty:JSON.parse(JSON.stringify(DEFAULT_DUTY)),noshowDeduct:true,metaTs:Date.now(),seq:1};}
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));return;}}catch(e){}
+  DB=fresh();importSeed();
+}
+function saveLocal(){localStorage.setItem(KEY,JSON.stringify(DB));}
+function save(){saveLocal();schedulePush();}
+function uid(){return 'id'+(DB.seq++)+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function now(){return Date.now();}
+function fmtW(n){return '₩'+(n||0).toLocaleString('ko-KR');}
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function today(){return ymd(new Date());}
+function esc(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function importSeed(){
+  REAL_SEED.members.forEach(m=>DB.members.push({...m,updatedAt:now()}));
+  REAL_SEED.sessions.forEach(s=>DB.sessions.push({...s,id:uid(),updatedAt:now()}));
+  saveLocal();
+}
+
+/* ===== 핵심 규칙: 횟수는 수기 입력 금지 — 기록에서 자동 계산 ===== */
+function countable(s){return s.status==='done'||(DB.noshowDeduct&&s.status==='noshow');}
+function memberSessions(mid){return DB.sessions.filter(s=>s.memberId===mid);}
+function usedOf(m){return (m.carryUsed||0)+memberSessions(m.id).filter(countable).length;}
+function totalOf(m){return (m.packages||[]).reduce((a,p)=>a+(+p.count||0),0);}
+function remainOf(m){return totalOf(m)-usedOf(m);}
+function ordinalMap(mid){
+  const m=DB.members.find(x=>x.id===mid);if(!m)return {};
+  const list=memberSessions(mid).filter(s=>countable(s)||s.status==='booked')
+    .sort((a,b)=>(a.date+String(a.hour).padStart(2,'0')).localeCompare(b.date+String(b.hour).padStart(2,'0')));
+  const map={};let n=m.carryUsed||0;
+  list.forEach(s=>{n++;map[s.id]=n;});
+  return map;
+}
+/* 시간 차단 */
+function isBlocked(trainer,date,hour){
+  const wd=(new Date(date+'T00:00:00').getDay()+6)%7;
+  return DB.blocks.some(b=>b.trainer===trainer&&((b.weekday===wd&&!b.date)||(b.date===date))&&b.hour===hour);
+}
+/* 12시간 규칙 */
+function hoursUntil(date,hour){return (new Date(date+'T'+String(hour).padStart(2,'0')+':00:00')-new Date())/3600000;}
+function addEvent(type,text){DB.events.unshift({id:uid(),ts:now(),type,text});DB.events=DB.events.slice(0,300);}
+/* 코치 색상·이니셜: 동명 성씨 자동 구분 (김택연→김택, 김강윤→김강). 신규 코치 추가 시 자동 배정 */
+function autoInitial(t){
+  const others=DB.trainers.filter(x=>x!==t);
+  for(let L=1;L<=t.length;L++){const c=t.slice(0,L);if(!others.some(o=>o!==t&&o.slice(0,L)===c))return c;}
+  return t;
+}
+function tMeta(t){
+  DB.trainerMeta=DB.trainerMeta||{};
+  if(!DB.trainerMeta[t]){
+    const used=Object.values(DB.trainerMeta).map(x=>x.color);
+    const color=PALETTE.find(c=>!used.includes(c))||PALETTE[Object.keys(DB.trainerMeta).length%PALETTE.length];
+    DB.trainerMeta[t]={color,initial:autoInitial(t)};
+  }
+  return DB.trainerMeta[t];
+}
+function dutyOf(wd){return (DB.duty||{})[wd]||{am:'',pm:''};}
+function dutyBadge(wd){
+  const du=dutyOf(wd);
+  if(!du.am&&!du.pm)return '';
+  const b=(lab,t)=>t?`<span class="duty-b" style="background:${tMeta(t).color}1c;color:${tMeta(t).color}">${lab} ${esc(tMeta(t).initial)}</span>`:'';
+  return `<div class="duty-line">${b('오전',du.am)}${b('오후',du.pm)}</div>`;
+}
+
+/* ================= 날짜 유틸 ================= */
+function mondayOf(dstr){const d=new Date(dstr+'T00:00:00');const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return ymd(d);}
+function addDays(dstr,n){const d=new Date(dstr+'T00:00:00');d.setDate(d.getDate()+n);return ymd(d);}
+function korDate(dstr){const d=new Date(dstr+'T00:00:00');return (d.getMonth()+1)+'/'+d.getDate()+' ('+DAYN[(d.getDay()+6)%7]+')';}
+function monthKey(dstr){return (dstr||'').slice(0,7);}
+
+/* ================= 동기화 (Supabase) ================= */
+let SYNC={state:'local',lastPull:0,syncedVer:null,pushTimer:null,pulling:false};
+const DEFAULT_SYNC={url:'https://kjxlpznsklnnijzskmeb.supabase.co',key:'sb_publishable_dCavLEzrgm4RkvpB4yGckA_RRVCYcNN'};
+function getCfg(){try{const c=JSON.parse(localStorage.getItem(CFGKEY));if(c&&c.url&&c.key)return c;}catch(e){}return DEFAULT_SYNC;}
+function setCfg(url,key){localStorage.setItem(CFGKEY,JSON.stringify({url:url.replace(/\/+$/,''),key}));}
+function hdrs(cfg){return {'apikey':cfg.key,'Authorization':'Bearer '+cfg.key,'Content-Type':'application/json'};}
+function syncBody(){const d={...DB};delete d._local;return d;}
+function mergeCol(a,b,deleted){
+  const map={};
+  (a||[]).forEach(x=>map[x.id]=x);
+  (b||[]).forEach(x=>{if(!map[x.id]||(x.updatedAt||0)>(map[x.id].updatedAt||0))map[x.id]=x;});
+  const del=new Set((deleted||[]).map(d=>d.id));
+  return Object.values(map).filter(x=>!del.has(x.id));
+}
+function mergeDB(local,remote){
+  if(!remote||!remote.members)return local;
+  const deleted=mergeCol(local.deleted||[],remote.deleted||[],[]).slice(0,800);
+  const out={...local};
+  out.deleted=deleted;
+  ['members','sessions','blocks','events'].forEach(k=>out[k]=mergeCol(local[k],remote[k],deleted));
+  out.events.sort((a,b)=>b.ts-a.ts);out.events=out.events.slice(0,300);
+  if((remote.metaTs||0)>(local.metaTs||0)){out.trainers=remote.trainers;out.noshowDeduct=remote.noshowDeduct;out.trainerMeta=remote.trainerMeta||{};out.duty=remote.duty||local.duty;out.metaTs=remote.metaTs;}
+  out.seq=Math.max(local.seq||1,remote.seq||1);
+  return out;
+}
+async function pullSync(force){
+  const cfg=getCfg();if(!cfg||SYNC.pulling)return;
+  SYNC.pulling=true;
+  try{
+    const r=await fetch(cfg.url+'/rest/v1/fp_store?id=eq.1&select=data,version',{headers:hdrs(cfg)});
+    if(!r.ok)throw new Error(r.status);
+    const rows=await r.json();
+    if(!rows.length){await pushInit(cfg);SYNC.state='on';}
+    else if(rows[0].version!==SYNC.syncedVer||force){
+      const prevEvts=(DB.events||[]).length?DB.events[0].ts:0;
+      DB=mergeDB(DB,rows[0].data);
+      SYNC.syncedVer=rows[0].version;
+      saveLocal();
+      SYNC.state='on';
+      notifyNew(prevEvts);
+      if(!document.getElementById('overlay').classList.contains('show'))render();
+    }else SYNC.state='on';
+    SYNC.lastPull=now();
+  }catch(e){SYNC.state='err';}
+  SYNC.pulling=false;updateSyncDot();
+}
+async function pushInit(cfg){
+  await fetch(cfg.url+'/rest/v1/fp_store',{method:'POST',headers:{...hdrs(cfg),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({id:1,data:syncBody(),version:1})});
+  SYNC.syncedVer=1;
+}
+async function pushSync(retry){
+  const cfg=getCfg();if(!cfg)return;
+  try{
+    const r=await fetch(cfg.url+'/rest/v1/fp_store?id=eq.1&select=data,version',{headers:hdrs(cfg)});
+    const rows=await r.json();
+    if(!rows.length){await pushInit(cfg);return;}
+    const merged=mergeDB(DB,rows[0].data);
+    DB=merged;saveLocal();
+    const newVer=rows[0].version+1;
+    const p=await fetch(cfg.url+'/rest/v1/fp_store?id=eq.1&version=eq.'+rows[0].version,{method:'PATCH',headers:{...hdrs(cfg),'Prefer':'return=representation'},body:JSON.stringify({data:syncBody(),version:newVer})});
+    const res=await p.json();
+    if(Array.isArray(res)&&res.length){SYNC.syncedVer=newVer;SYNC.state='on';}
+    else if(!retry){await pushSync(true);return;}
+  }catch(e){SYNC.state='err';}
+  updateSyncDot();
+}
+function schedulePush(){
+  if(!getCfg())return;
+  clearTimeout(SYNC.pushTimer);
+  SYNC.pushTimer=setTimeout(()=>pushSync(false),1200);
+}
+function updateSyncDot(){
+  const el=document.getElementById('sync-dot');if(!el)return;
+  const cfg=getCfg();
+  el.className='sync-dot '+(cfg?(SYNC.state==='on'?'on':SYNC.state==='err'?'err':''):'');
+  el.innerHTML='<i></i>'+(cfg?(SYNC.state==='on'?'서버 동기화됨':SYNC.state==='err'?'동기화 오류':'연결 중…'):'로컬 모드');
+}
+function notifyNew(prevTs){
+  const fresh=(DB.events||[]).filter(e=>e.ts>prevTs&&['book','cancel','late_cancel'].includes(e.type));
+  if(fresh.length&&typeof Notification!=='undefined'&&Notification.permission==='granted'){
+    try{new Notification('퍼스트피지오 알림',{body:fresh[0].text+(fresh.length>1?' 외 '+(fresh.length-1)+'건':'')});}catch(e){}
+  }
+}
+
+/* ================= 모드 감지 ================= */
+const PARAMS=new URLSearchParams(location.search);
+const BOOKING_MODE=PARAMS.get('book')==='1';
+
+/* ================= 라우팅 (직원 모드) ================= */
+let VIEW='sched';
+let SCHED={week:mondayOf(today()),dayIdx:Math.min((new Date().getDay()+6)%7,5),mode:(typeof window!=='undefined'&&window.innerWidth<700)?'day':'week',trainerFilter:''};
+let MEM_FILTER={q:'',trainer:'',status:'active'};
+let DASH_MONTH=today().slice(0,7);
+
+function renderShell(){
+  document.getElementById('app').innerHTML=`
+  <header>
+    <h1>FIRST <span>PHYSIO</span></h1>
+    <nav id="nav">
+      <button data-v="sched" class="${VIEW==='sched'?'on':''}">스케줄</button>
+      <button data-v="dash" class="${VIEW==='dash'?'on':''}">대시보드</button>
+      <button data-v="members" class="${VIEW==='members'?'on':''}">회원 관리</button>
+      <button data-v="renew" class="${VIEW==='renew'?'on':''}">재등록 관리</button>
+      <button data-v="settings" class="${VIEW==='settings'?'on':''}">설정·도움말</button>
+    </nav>
+    <div class="hdr-right">
+      <button class="bell" onclick="openEvents()" title="알림">🔔${unseenCount()?`<b>${unseenCount()}</b>`:''}</button>
+      <span class="sync-dot" id="sync-dot"></span>
+    </div>
+  </header>
+  <main id="main"></main>`;
+  document.getElementById('nav').addEventListener('click',e=>{
+    if(e.target.dataset.v){VIEW=e.target.dataset.v;renderShell();}
+  });
+  document.getElementById('main').innerHTML=
+    VIEW==='dash'?viewDash():VIEW==='sched'?viewSched():VIEW==='members'?viewMembers():VIEW==='renew'?viewRenew():viewSettings();
+  updateSyncDot();
+}
+function render(){if(BOOKING_MODE)renderBooking();else renderShell();}
+function unseenCount(){
+  const seen=+localStorage.getItem(SEENKEY)||0;
+  return (DB.events||[]).filter(e=>e.ts>seen&&['book','cancel','late_cancel'].includes(e.type)).length;
+}
+
+/* ================= 알림 피드 ================= */
+function openEvents(){
+  localStorage.setItem(SEENKEY,String(now()));
+  const evts=(DB.events||[]).slice(0,60);
+  openModal(`
+  <h3>🔔 알림 <span style="font-weight:500;font-size:12px;color:var(--sub)">— 회원 예약·취소, 차감 대기</span></h3>
+  <div class="hist" style="max-height:340px">
+    ${evts.length?evts.map(e=>`<div class="evt">${{book:'📌',cancel:'↩️',late_cancel:'⚠️',staff:'✏️'}[e.type]||'•'} ${esc(e.text)}<div class="t">${new Date(e.ts).toLocaleString('ko-KR')}</div></div>`).join(''):'<div class="empty">알림 없음</div>'}
+  </div>
+  <div class="note" style="margin-top:10px">브라우저 알림을 켜면 회원이 예약·취소할 때 팝업으로 알려줍니다 (서버 연결 시 15초 간격 확인).
+  <button class="btn small" style="margin-left:6px" onclick="if(typeof Notification!=='undefined')Notification.requestPermission().then(p=>alert(p==='granted'?'브라우저 알림이 켜졌습니다':'알림 권한이 거부되었습니다'))">브라우저 알림 켜기</button></div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal();render()">닫기</button></div>`);
+}
+
+/* ================= 대시보드 ================= */
+function monthStats(mk){
+  const done=DB.sessions.filter(s=>s.status==='done'&&monthKey(s.date)===mk);
+  const noshow=DB.sessions.filter(s=>s.status==='noshow'&&monthKey(s.date)===mk);
+  const cancel=DB.sessions.filter(s=>(s.status==='cancelled'||s.status==='late_cancel')&&monthKey(s.date)===mk);
+  let pay=0,renewPkg=0,newMembers=0;
+  DB.members.forEach(mem=>{
+    (mem.packages||[]).forEach((p,i)=>{
+      if(monthKey(p.date)===mk){pay+=(+p.amount||0);if(i>0)renewPkg++;}
+    });
+    if(mem.packages&&mem.packages[0]&&monthKey(mem.packages[0].date)===mk)newMembers++;
+  });
+  const ta=done.length+noshow.length;
+  return {done:done.length,noshow:noshow.length,cancel:cancel.length,pay,newMembers,renewPkg,noshowRate:ta?Math.round(noshow.length/ta*100):0};
+}
+function goldenList(){return DB.members.filter(m=>m.status==='active'&&totalOf(m)>0&&remainOf(m)<=3&&remainOf(m)>0);}
+function expiredList(){return DB.members.filter(m=>m.status==='active'&&totalOf(m)>0&&remainOf(m)<=0);}
+function lateCancelList(){return DB.sessions.filter(s=>s.status==='late_cancel');}
+function viewDash(){
+  const mk=DASH_MONTH,st=monthStats(mk);
+  const active=DB.members.filter(m=>m.status==='active').length;
+  const golden=goldenList().length,expired=expiredList().length;
+  const lc=lateCancelList();
+  let months=[];{let d=new Date(mk+'-01T00:00:00');for(let i=5;i>=0;i--){const t=new Date(d);t.setMonth(t.getMonth()-i);months.push(ymd(t).slice(0,7));}}
+  const payArr=months.map(k=>monthStats(k).pay);
+  const doneArr=months.map(k=>monthStats(k).done);
+  const maxPay=Math.max(...payArr,1),maxDone=Math.max(...doneArr,1);
+  const tRows=DB.trainers.map(t=>{
+    const mems=DB.members.filter(m=>m.status==='active'&&m.trainer===t);
+    const doneS=DB.sessions.filter(s=>s.trainer===t&&s.status==='done'&&monthKey(s.date)===mk).length;
+    const ns=DB.sessions.filter(s=>s.trainer===t&&s.status==='noshow'&&monthKey(s.date)===mk).length;
+    let pay=0;mems.forEach(m=>(m.packages||[]).forEach(p=>{if(monthKey(p.date)===mk)pay+=(+p.amount||0);}));
+    const gold=mems.filter(m=>totalOf(m)>0&&remainOf(m)<=3).length;
+    return {t,mem:mems.length,doneS,ns,pay,gold};
+  });
+  return `
+  <div class="toolbar">
+    <label style="font-weight:700;font-size:13px">기준 월</label>
+    <input type="month" value="${mk}" onchange="DASH_MONTH=this.value;render()">
+    <span class="sp"></span>
+    <span style="font-size:12px;color:var(--sub)">모든 수치는 세션·결제 기록에서 자동 집계 (수기 입력 없음)</span>
+  </div>
+  ${lc.length?`<div class="card" style="border-color:#f3c98b;background:#fffaf1"><h2>⚠️ 차감 판단 대기 <span class="hint">수업 12시간 이내 취소 — 코치 재량으로 결정</span></h2>
+    <table><tbody>${lc.map(s=>{const m=DB.members.find(x=>x.id===s.memberId);return `<tr><td><b>${esc(m?m.name:'?')}</b></td><td>${korDate(s.date)} ${s.hour}:00</td><td>${esc(s.trainer)}</td>
+    <td style="text-align:right"><button class="btn small danger" onclick="decideLate('${s.id}','noshow')">차감 확정</button> <button class="btn small ghost" onclick="decideLate('${s.id}','cancelled')">차감 없이 취소</button></td></tr>`;}).join('')}</tbody></table></div>`:''}
+  <div class="grid-kpi">
+    <div class="kpi"><div class="k-label">활성 회원</div><div class="k-val">${active}명</div><div class="k-sub">신규 등록 ${st.newMembers}명 (${mk.slice(5)}월)</div></div>
+    <div class="kpi"><div class="k-label">이번 달 완료 세션</div><div class="k-val">${st.done}회</div><div class="k-sub">노쇼 ${st.noshow} · 취소 ${st.cancel}</div></div>
+    <div class="kpi"><div class="k-label">이번 달 결제액</div><div class="k-val">${fmtW(st.pay)}</div><div class="k-sub">신규+재등록 (이관분 제외)</div></div>
+    <div class="kpi"><div class="k-label">이번 달 재등록</div><div class="k-val">${st.renewPkg}건</div><div class="k-sub">추가 패키지 결제 기준</div></div>
+    <div class="kpi ${golden+expired>0?'alert':''}"><div class="k-label">재등록 골든타임 🔔</div><div class="k-val">${golden+expired}명</div><div class="k-sub">잔여 3회 이하 ${golden} · 만료 ${expired}</div></div>
+    <div class="kpi"><div class="k-label">노쇼율</div><div class="k-val">${st.noshowRate}%</div><div class="k-sub">노쇼 ÷ (완료+노쇼)</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card"><h2>월별 결제액 <span class="hint">최근 6개월</span></h2>
+      <div class="bars">${months.map((k,i)=>`<div class="bar-col"><div class="bv">${payArr[i]?Math.round(payArr[i]/10000)+'만':''}</div><div class="bar" style="height:${Math.round(payArr[i]/maxPay*100)}%"></div><div class="bl">${k.slice(5)}월</div></div>`).join('')}</div>
+    </div>
+    <div class="card"><h2>월별 완료 세션 <span class="hint">최근 6개월</span></h2>
+      <div class="bars">${months.map((k,i)=>`<div class="bar-col"><div class="bv">${doneArr[i]||''}</div><div class="bar" style="height:${Math.round(doneArr[i]/maxDone*100)}%;background:linear-gradient(180deg,#3ecf8e,#0eab6b)"></div><div class="bl">${k.slice(5)}월</div></div>`).join('')}</div>
+    </div>
+  </div>
+  <div class="card"><h2>트레이너별 성과 <span class="hint">${mk} · 주간/월간 리뷰 자료</span></h2>
+    <table><thead><tr><th>트레이너</th><th>담당 활성 회원</th><th>완료 세션</th><th>노쇼</th><th>담당 결제액</th><th>재등록 임박</th></tr></thead>
+    <tbody>${tRows.map(r=>`<tr><td><b>${esc(r.t)}</b></td><td class="mono">${r.mem}명</td><td class="mono">${r.doneS}회</td><td class="mono">${r.ns}</td><td class="mono">${fmtW(r.pay)}</td><td>${r.gold?`<span class="badge b-warn">${r.gold}명</span>`:'-'}</td></tr>`).join('')}</tbody></table>
+  </div>`;
+}
+function decideLate(sid,st){
+  const s=DB.sessions.find(x=>x.id===sid);if(!s)return;
+  const m=DB.members.find(x=>x.id===s.memberId);
+  s.status=st;s.updatedAt=now();
+  addEvent('staff',`${m?m.name:'?'}님 ${korDate(s.date)} ${s.hour}시 늦은 취소 → ${st==='noshow'?'차감 확정':'차감 없이 취소'}`);
+  save();render();
+}
+
+/* ================= 스케줄 ================= */
+function chipHTML(s,om,compact){
+  const m=DB.members.find(x=>x.id===s.memberId);if(!m)return '';
+  const tot=totalOf(m);const o=om[s.id];
+  const over=o>tot&&tot>0;
+  const stTxt={booked:'',done:'✓ ',noshow:'✗ ',cancelled:'',late_cancel:'⚠ '}[s.status]||'';
+  const cnt=(s.status==='cancelled')?'취소':(s.status==='late_cancel')?'차감대기':`<span class="cnt">${o||'-'}/${tot}</span>`;
+  const tm=tMeta(s.trainer);
+  const tI=compact?`<span class="tt" style="color:${tm.color}">${esc(tm.initial)}</span>·`:'';
+  return `<div class="chip ${s.status} ${over?'over':''}" style="border-left:3px solid ${tm.color}" onclick="event.stopPropagation();openSessionMenu('${s.id}')">${stTxt}${tI}${esc(m.name)} ${cnt}</div>`;
+}
+function viewSched(){
+  const days=[...Array(7)].map((_,i)=>addDays(SCHED.week,i));
+  const om={};const ordC={};
+  function O(s){if(!ordC[s.memberId])ordC[s.memberId]=ordinalMap(s.memberId);return ordC[s.memberId];}
+  const controls=`
+  <div class="toolbar">
+    <div class="seg"><button class="${SCHED.mode==='week'?'on':''}" onclick="SCHED.mode='week';render()">주간 전체</button><button class="${SCHED.mode==='day'?'on':''}" onclick="SCHED.mode='day';render()">일간 (코치별)</button></div>
+    <button class="btn ghost small" onclick="SCHED.week=addDays(SCHED.week,-7);render()">◀ 이전 주</button>
+    <input type="date" value="${SCHED.week}" onchange="SCHED.week=mondayOf(this.value);render()">
+    <button class="btn ghost small" onclick="SCHED.week=addDays(SCHED.week,7);render()">다음 주 ▶</button>
+    <button class="btn ghost small" onclick="SCHED.week=mondayOf(today());SCHED.dayIdx=Math.min((new Date().getDay()+6)%7,6);render()">오늘</button>
+    ${SCHED.mode==='week'?`<select onchange="SCHED.trainerFilter=this.value;render()"><option value="">코치 전체</option>${DB.trainers.map(t=>`<option ${SCHED.trainerFilter===t?'selected':''}>${esc(t)}</option>`).join('')}</select>`:''}
+    <span class="sp"></span>
+    <button class="btn ghost small" onclick="openDuty()">🗓 당직</button>
+    <button class="btn ghost small" onclick="openBlocks()">🚫 수업 불가 시간</button>
+    <button class="btn ghost small" onclick="openReminder()">📩 수업 안내문</button>
+    <button class="btn ghost small" onclick="openBookLink()">🔗 회원 예약 링크</button>
+    <button class="btn ghost small" onclick="copyPrevWeek()">지난주 복사</button>
+    <button class="btn small" onclick="openAddSession('${days[SCHED.dayIdx]}','','')">+ 세션</button>
+  </div>`;
+  let grid;
+  if(SCHED.mode==='week'){
+    const tf=SCHED.trainerFilter;
+    const weekSessions=DB.sessions.filter(s=>days.includes(s.date)&&(!tf||s.trainer===tf));
+    grid=`<div class="sched-wrap"><table class="sched">
+    <thead><tr><th>시간</th>${days.map((d,i)=>`<th style="${d===today()?'background:var(--brand-soft)':''}">${korDate(d)}${dutyBadge(i)}</th>`).join('')}</tr></thead>
+    <tbody>${HOURS.map(h=>`<tr><td class="time">${h}:00</td>${days.map(d=>{
+      const list=weekSessions.filter(s=>s.date===d&&s.hour===h).sort((a,b)=>a.trainer.localeCompare(b.trainer,'ko'));
+      const blocked=tf&&isBlocked(tf,d,h);
+      return `<td class="${blocked?'blocked':''} ${d<today()?'past-col':''}" onclick="${blocked?'':'openAddSession(\''+d+'\','+h+',\''+esc(tf)+'\')'}">${list.map(s=>chipHTML(s,O(s),!tf)).join('')}</td>`;
+    }).join('')}</tr>`).join('')}</tbody></table></div>
+    <div class="note" style="margin-top:10px">주간 전체 보기 — 칩 왼쪽 색상과 이니셜이 담당 코치입니다(예: <b>김강</b>·박익규). 날짜 아래는 당직(오전 9~16 / 오후 16~23). 특정 코치만 보려면 코치 필터를 선택하세요. 빗금 칸은 수업 불가 시간입니다.</div>`;
+  }else{
+    const date=days[SCHED.dayIdx];
+    const daySessions=DB.sessions.filter(s=>s.date===date);
+    grid=`<div class="day-tabs" style="margin-bottom:10px">${days.map((d,i)=>`<button class="${i===SCHED.dayIdx?'on':''}" onclick="SCHED.dayIdx=${i};render()">${korDate(d)}</button>`).join('')}</div>
+    <div class="sched-wrap"><table class="sched">
+    <thead><tr><th>시간</th>${DB.trainers.map(t=>{const du=dutyOf(SCHED.dayIdx);const marks=(du.am===t?' ☀':'')+(du.pm===t?' 🌙':'');return `<th style="box-shadow:inset 0 -3px 0 ${tMeta(t).color}">${esc(t)}<span title="당직">${marks}</span></th>`;}).join('')}</tr></thead>
+    <tbody>${HOURS.map(h=>`<tr><td class="time">${h}:00</td>${DB.trainers.map(t=>{
+      const list=daySessions.filter(s=>s.trainer===t&&s.hour===h);
+      const blocked=isBlocked(t,date,h);
+      return `<td class="${blocked?'blocked':''}" onclick="${blocked?'':'openAddSession(\''+date+'\','+h+',\''+esc(t)+'\')'}">${list.map(s=>chipHTML(s,O(s),false)).join('')}</td>`;
+    }).join('')}</tr>`).join('')}</tbody></table></div>`;
+  }
+  return controls+grid+`<div class="note" style="margin-top:10px">회차 번호는 <b>기록에서 자동 계산</b>됩니다 — 예약(파란 점선)=예상 회차, <b>완료(초록)·노쇼(빨강)</b>=확정 차감, <b>⚠ 주황=12시간 이내 취소(차감 판단 대기)</b>. 칩 클릭으로 상태 변경.</div>`;
+}
+function copyPrevWeek(){
+  const prev=[...Array(7)].map((_,i)=>addDays(SCHED.week,i-7));
+  const cur=[...Array(7)].map((_,i)=>addDays(SCHED.week,i));
+  let added=0,skipped=0;
+  prev.forEach((pd,i)=>{
+    DB.sessions.filter(s=>s.date===pd&&!['cancelled','late_cancel'].includes(s.status)).forEach(s=>{
+      const m=DB.members.find(x=>x.id===s.memberId);
+      if(!m||m.status!=='active'){skipped++;return;}
+      if(DB.sessions.find(x=>x.date===cur[i]&&x.hour===s.hour&&x.memberId===s.memberId)){skipped++;return;}
+      const booked=memberSessions(m.id).filter(x=>x.status==='booked').length;
+      if(remainOf(m)-booked<=0){skipped++;return;}
+      DB.sessions.push({id:uid(),memberId:s.memberId,trainer:s.trainer,date:cur[i],hour:s.hour,status:'booked',updatedAt:now()});
+      added++;
+    });
+  });
+  save();render();
+  alert(`지난주 세션 ${added}건을 예약으로 복사했습니다.`+(skipped?`\n(중복·잔여 부족·비활성 ${skipped}건 제외 — 회차는 자동 재계산되므로 안전)`:''));
+}
+function openAddSession(date,hour,trainer){
+  trainer=(trainer&&DB.trainers.includes(trainer))?trainer:(SCHED.trainerFilter||DB.trainers[0]||'');
+  openModal(`
+  <h3>세션 추가 — ${korDate(date)}</h3>
+  <div class="frm">
+    <div><label>담당 코치</label><select id="as-trainer" onchange="asFillMembers()">${DB.trainers.map(t=>`<option ${t===trainer?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+    <div style="display:flex;align-items:flex-end;padding-bottom:8px"><label style="display:flex;gap:6px;align-items:center;font-size:12px;cursor:pointer;margin:0;color:var(--sub)"><input type="checkbox" id="as-all" onchange="asFillMembers()" style="width:auto">다른 코치 회원도 표시</label></div>
+    <div class="full"><label>회원 — 선택한 코치의 회원만 표시 (잔여횟수 자동 계산)</label>
+      <select id="as-member" onchange="asPreview()"></select></div>
+    <div><label>날짜</label><input type="date" id="as-date" value="${date}"></div>
+    <div><label>시간</label><select id="as-hour">${HOURS.map(h=>`<option value="${h}" ${h===+hour?'selected':''}>${h}:00</option>`).join('')}</select></div>
+    <div class="full"><label>매주 반복 (복붙 대신)</label><select id="as-repeat"><option value="1">반복 없음</option><option value="2">2주</option><option value="4">4주</option><option value="8">8주</option><option value="12">12주</option></select></div>
+    <div class="full" id="as-preview"></div>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button><button class="btn" onclick="addSession()">예약 추가</button></div>`);
+  asFillMembers();
+}
+function asFillMembers(){
+  const t=document.getElementById('as-trainer').value;
+  const all=document.getElementById('as-all').checked;
+  const sel=document.getElementById('as-member');
+  const list=DB.members.filter(m=>m.status==='active'&&(all||m.trainer===t)).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  sel.innerHTML='<option value="">회원 선택…</option>'+list.map(m=>`<option value="${m.id}">${esc(m.name)}${all?' · '+esc(m.trainer):''} · ${usedOf(m)}/${totalOf(m)} (잔여 ${remainOf(m)})</option>`).join('');
+  document.getElementById('as-preview').innerHTML=list.length?'':'<div class="note warn">이 코치의 활성 회원이 없습니다. "다른 코치 회원도 표시"를 체크해 보세요.</div>';
+}
+function asPreview(){
+  const mid=document.getElementById('as-member').value;const box=document.getElementById('as-preview');
+  if(!mid){box.innerHTML='';return;}
+  const m=DB.members.find(x=>x.id===mid);
+  const booked=memberSessions(mid).filter(s=>s.status==='booked').length;
+  const rem=remainOf(m)-booked;
+  box.innerHTML=rem<=0
+    ?`<div class="note bad">⚠ ${esc(m.name)}님 잔여 횟수 없음 (사용 ${usedOf(m)}/${totalOf(m)}, 예약 대기 ${booked}). 재등록 결제를 먼저 등록해 주세요.</div>`
+    :`<div class="note">예상 회차: <b>${usedOf(m)+booked+1} / ${totalOf(m)}</b> · 예약 후 잔여 ${rem-1}회 ${rem<=3?'<span class="badge b-warn">재등록 골든타임</span>':''}</div>`;
+}
+function addSession(){
+  const mid=document.getElementById('as-member').value;
+  if(!mid){alert('회원을 선택해 주세요.');return;}
+  const m=DB.members.find(x=>x.id===mid);
+  const date=document.getElementById('as-date').value;
+  const hour=+document.getElementById('as-hour').value;
+  const trainer=document.getElementById('as-trainer').value;
+  const rep=+document.getElementById('as-repeat').value;
+  if(isBlocked(trainer,date,hour)&&!confirm(`${trainer} 코치의 수업 불가 시간입니다. 그래도 추가할까요?`))return;
+  const booked=memberSessions(mid).filter(s=>s.status==='booked').length;
+  let can=remainOf(m)-booked;
+  if(can<=0&&!confirm(`${m.name}님 잔여 횟수가 없습니다. 그래도 예약할까요? (재등록 예정)`))return;
+  let added=0;
+  for(let i=0;i<rep;i++){
+    const d=addDays(date,i*7);
+    if(DB.sessions.find(x=>x.date===d&&x.hour===hour&&x.memberId===mid))continue;
+    if(rep>1&&can-added<=0)break;
+    DB.sessions.push({id:uid(),memberId:mid,trainer,date:d,hour,status:'booked',updatedAt:now()});added++;
+  }
+  save();closeModal();render();
+  if(rep>1)alert(`${added}건 예약 완료 (잔여 한도 내 생성)`);
+}
+function openSessionMenu(sid){
+  const s=DB.sessions.find(x=>x.id===sid);if(!s)return;
+  const m=DB.members.find(x=>x.id===s.memberId);
+  const o=ordinalMap(s.memberId)[sid];
+  const stName={booked:'예약',done:'완료',noshow:'노쇼',cancelled:'취소',late_cancel:'⚠ 늦은 취소 — 차감 판단 대기'}[s.status];
+  openModal(`
+  <h3>${esc(m?m.name:'?')} — ${korDate(s.date)} ${s.hour}:00</h3>
+  <div class="note" style="margin-bottom:12px">상태: <b>${stName}</b> · 회차 ${o?o+' / '+totalOf(m):'—'} · 담당 ${esc(s.trainer)}${s.bookedBy==='member'?' · <span class="badge b-vio">회원 직접 예약</span>':''}<br>완료/노쇼 처리 시 자동 차감 — 이후 예약 회차가 자동으로 다시 계산됩니다.</div>
+  ${s.status==='late_cancel'?`<div class="note warn" style="margin-bottom:10px">수업 12시간 이내 취소입니다. 회원과 연락 후 코치 재량으로 결정하세요.</div>`:''}
+  <div class="pill-row">
+    <button class="btn" onclick="setSession('${sid}','done')">✓ 수업 완료</button>
+    <button class="btn danger" onclick="setSession('${sid}','noshow')">✗ 노쇼/차감${DB.noshowDeduct?'':' (차감 OFF)'}</button>
+    <button class="btn ghost" onclick="setSession('${sid}','cancelled')">취소 (차감 없음)</button>
+    <button class="btn ghost" onclick="setSession('${sid}','booked')">예약으로 되돌리기</button>
+    <button class="btn ghost" onclick="delSession('${sid}')">기록 삭제</button>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button></div>`);
+}
+function delSession(sid){
+  if(!confirm('이 세션 기록을 삭제할까요?'))return;
+  DB.sessions=DB.sessions.filter(x=>x.id!==sid);
+  DB.deleted.push({id:sid,ts:now()});
+  save();closeModal();render();
+}
+function setSession(sid,st){
+  const s=DB.sessions.find(x=>x.id===sid);s.status=st;s.updatedAt=now();save();closeModal();render();
+  const m=DB.members.find(x=>x.id===s.memberId);
+  if(m&&(st==='done'||st==='noshow')&&remainOf(m)===3)setTimeout(()=>alert(`🔔 ${m.name}님 잔여 3회 — 재등록 골든타임. [재등록 관리]에 자동 등록되었습니다.`),50);
+}
+
+/* ---- 당직 설정 ---- */
+function openDuty(){
+  const opts=v=>'<option value="">-</option>'+DB.trainers.map(t=>`<option ${v===t?'selected':''}>${esc(t)}</option>`).join('');
+  openModal(`
+  <h3>🗓 당직 설정 <span style="font-size:12px;color:var(--sub);font-weight:500">— 오전 9~16시 / 오후 16~23시, 매주 반복</span></h3>
+  <table><thead><tr><th>요일</th><th>오전 당직</th><th>오후 당직</th></tr></thead><tbody>
+  ${DAYN.map((d,wd)=>{const du=dutyOf(wd);
+    return `<tr><td><b>${d}</b></td><td><select id="du-am-${wd}">${opts(du.am)}</select></td><td><select id="du-pm-${wd}">${opts(du.pm)}</select></td></tr>`;}).join('')}
+  </tbody></table>
+  <div class="note" style="margin-top:8px">저장하면 스케줄 요일 헤더에 코치 색상으로 표시되고, 전 기기에 동기화됩니다.</div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button><button class="btn" onclick="saveDuty()">저장</button></div>`);
+}
+function saveDuty(){
+  DB.duty={};
+  DAYN.forEach((d,wd)=>{DB.duty[wd]={am:document.getElementById('du-am-'+wd).value,pm:document.getElementById('du-pm-'+wd).value};});
+  DB.metaTs=now();save();closeModal();render();
+}
+
+/* ---- 코치 추가 / 퇴사 인수인계 ---- */
+function addTrainer(){
+  const v=document.getElementById('new-trainer').value.trim();
+  if(!v)return;
+  if(DB.trainers.includes(v)){alert('이미 있는 이름입니다.');return;}
+  DB.trainers.push(v);tMeta(v);DB.metaTs=now();
+  addEvent('staff',v+' 코치가 추가되었습니다');
+  save();render();
+}
+function removeTrainer(i){
+  const t=DB.trainers[i];
+  const mems=DB.members.filter(m=>m.trainer===t&&m.status!=='ended');
+  const futs=DB.sessions.filter(s=>s.trainer===t&&s.status==='booked');
+  if(!mems.length&&!futs.length){
+    if(confirm(t+' 코치를 목록에서 제거할까요? (과거 수업 기록·통계는 그대로 보존됩니다)')){
+      DB.trainers.splice(i,1);
+      for(const k in (DB.duty||{})){if(DB.duty[k].am===t)DB.duty[k].am='';if(DB.duty[k].pm===t)DB.duty[k].pm='';}
+      DB.blocks=DB.blocks.filter(b=>b.trainer!==t);
+      DB.metaTs=now();save();render();
+    }
+    return;
+  }
+  openHandover(t);
+}
+function openHandover(t){
+  const others=DB.trainers.filter(x=>x!==t);
+  if(!others.length){alert('인수받을 코치가 없습니다. 먼저 새 코치를 추가해 주세요.');return;}
+  const mems=DB.members.filter(m=>m.trainer===t&&m.status!=='ended').sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  openModal(`
+  <h3>${esc(t)} 코치 퇴사 — 회원 인수인계</h3>
+  <div class="note" style="margin-bottom:10px">담당 회원 <b>${mems.length}명</b>과 예약된 수업을 새 코치에게 넘깁니다. 과거 수업 기록·통계는 ${esc(t)} 코치 이름으로 보존되며, 각 회원 메모에 인수인계 이력이 자동 기록됩니다.</div>
+  <div style="margin-bottom:8px;font-size:13px">일괄 지정:
+    <select id="hv-bulk" onchange="document.querySelectorAll('.hv-sel').forEach(s=>s.value=this.value)">${others.map(o=>`<option>${esc(o)}</option>`).join('')}</select>
+    <span style="color:var(--sub);font-size:12px">(회원별로 개별 변경 가능)</span></div>
+  <div class="hist" style="max-height:280px"><table><tbody>
+  ${mems.map(m=>`<tr><td><b>${esc(m.name)}</b> <span class="mono" style="color:var(--sub)">${usedOf(m)}/${totalOf(m)}</span></td>
+  <td style="font-size:11.5px;color:var(--sub)">${esc((m.goal||'').slice(0,22))}</td>
+  <td><select class="hv-sel" data-mid="${m.id}">${others.map(o=>`<option>${esc(o)}</option>`).join('')}</select></td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">취소</button>
+  <button class="btn danger" onclick="applyHandover('${esc(t)}')">인수인계 실행 & 퇴사 처리</button></div>`);
+}
+function applyHandover(t){
+  let n=0;
+  document.querySelectorAll('.hv-sel').forEach(sel=>{
+    const m=DB.members.find(x=>x.id===sel.dataset.mid);if(!m)return;
+    const to=sel.value;
+    m.trainer=to;m.updatedAt=now();n++;
+    m.notes=((m.notes||'')+'\n['+today()+'] '+t+' → '+to+' 인수인계').trim();
+    DB.sessions.filter(s=>s.memberId===m.id&&s.status==='booked'&&s.trainer===t).forEach(s=>{s.trainer=to;s.updatedAt=now();});
+  });
+  const i=DB.trainers.indexOf(t);if(i>=0)DB.trainers.splice(i,1);
+  for(const k in (DB.duty||{})){if(DB.duty[k].am===t)DB.duty[k].am='';if(DB.duty[k].pm===t)DB.duty[k].pm='';}
+  DB.blocks=DB.blocks.filter(b=>b.trainer!==t);
+  DB.metaTs=now();
+  addEvent('staff',t+' 코치 퇴사 — 회원 '+n+'명 인수인계 완료');
+  save();closeModal();render();
+  alert('인수인계 완료. 과거 기록과 통계는 보존됩니다. 당직표를 확인해 주세요.');
+}
+
+/* ---- 수업 불가 시간 ---- */
+let BLK_TRAINER='';
+function openBlocks(){
+  BLK_TRAINER=BLK_TRAINER||DB.trainers[0];
+  renderBlocks();
+}
+function renderBlocks(){
+  const t=BLK_TRAINER;
+  openModal(`
+  <h3>🚫 수업 불가 시간 <span style="font-size:12px;color:var(--sub);font-weight:500">— 매주 반복 차단 (회원 예약 불가, 직원은 경고 후 가능)</span></h3>
+  <div style="margin-bottom:10px"><select onchange="BLK_TRAINER=this.value;renderBlocks()">${DB.trainers.map(x=>`<option ${x===t?'selected':''}>${esc(x)}</option>`).join('')}</select></div>
+  <div style="overflow-x:auto"><table class="block-grid">
+    <tr><th style="width:52px">시간</th>${DAYN.map(d=>`<th style="width:44px">${d}</th>`).join('')}</tr>
+    ${HOURS.map(h=>`<tr><th>${h}:00</th>${DAYN.map((d,wd)=>{
+      const b=DB.blocks.some(x=>x.trainer===t&&x.weekday===wd&&!x.date&&x.hour===h);
+      return `<td class="${b?'b':''}" onclick="toggleBlock(${wd},${h})">${b?'✕':''}</td>`;
+    }).join('')}</tr>`).join('')}
+  </table></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal();render()">완료</button></div>`);
+}
+function toggleBlock(wd,h){
+  const t=BLK_TRAINER;
+  const i=DB.blocks.findIndex(x=>x.trainer===t&&x.weekday===wd&&!x.date&&x.hour===h);
+  if(i>=0){DB.deleted.push({id:DB.blocks[i].id,ts:now()});DB.blocks.splice(i,1);}
+  else DB.blocks.push({id:uid(),trainer:t,weekday:wd,hour:h,updatedAt:now()});
+  save();renderBlocks();
+}
+
+/* ---- 수업 안내문 (24시간 전 알림 대용) ---- */
+function openReminder(){
+  const d=addDays(today(),1);
+  openModal(`
+  <h3>📩 수업 안내문 생성 <span style="font-size:12px;color:var(--sub);font-weight:500">— 카카오톡에 붙여넣기</span></h3>
+  <div class="frm"><div><label>날짜</label><input type="date" id="rm-date" value="${d}" onchange="genReminder()"></div>
+  <div><label>코치</label><select id="rm-trainer" onchange="genReminder()"><option value="">전체</option>${DB.trainers.map(t=>`<option>${esc(t)}</option>`).join('')}</select></div></div>
+  <textarea id="rm-out" rows="10" style="width:100%;margin-top:10px;font-size:12.5px"></textarea>
+  <div class="note" style="margin-top:8px">완전 자동 발송(카카오 알림톡/문자)은 서버 연결 후 확장 단계에서 붙일 수 있습니다. 지금은 매일 저녁 이 안내문을 복사해 단체/개별 전송하세요.</div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button><button class="btn" onclick="navigator.clipboard.writeText(document.getElementById('rm-out').value).then(()=>alert('복사되었습니다'))">전체 복사</button></div>`);
+  genReminder();
+}
+function genReminder(){
+  const d=document.getElementById('rm-date').value;
+  const tf=document.getElementById('rm-trainer').value;
+  const list=DB.sessions.filter(s=>s.date===d&&s.status==='booked'&&(!tf||s.trainer===tf)).sort((a,b)=>a.hour-b.hour);
+  const lines=list.map(s=>{const m=DB.members.find(x=>x.id===s.memberId);if(!m)return '';
+    return `${m.name}님 — ${korDate(d)} ${s.hour}:00 (${s.trainer} 코치)\n[퍼스트피지오] ${m.name}님, 내일 ${korDate(d)} ${s.hour}시 수업이 예약되어 있습니다. 변경이 필요하시면 미리 연락 부탁드립니다 :)\n`;});
+  document.getElementById('rm-out').value=lines.length?lines.join('\n'):'해당 날짜에 예약된 수업이 없습니다.';
+}
+
+/* ---- 회원 예약 링크 ---- */
+function openBookLink(){
+  const base=location.href.split('?')[0];
+  const isFile=location.protocol==='file:';
+  openModal(`
+  <h3>🔗 회원 예약 링크</h3>
+  ${isFile?'<div class="note bad" style="margin-bottom:10px"><b>아직 웹에 올리지 않아 이 링크는 카톡에서 작동하지 않습니다.</b> 설정 탭의 "웹에 올리기" 2단계(GitHub Pages 또는 Netlify)를 먼저 완료하면, 생기는 https 주소 기준으로 아래 링크가 자동으로 바뀌고 카톡에서 바로 눌러 접속됩니다.</div>':''}
+  <div class="note" style="margin-bottom:10px">회원이 링크를 눌러 <b>직접 예약·취소</b>합니다. 담당 코치의 빈 시간만 보이고 12시간 규칙이 자동 적용됩니다. 서버(Supabase) 연결 필수.</div>
+  <table><tbody>
+    ${DB.trainers.map(t=>`<tr><td><b>${esc(t)}</b> 코치 전용</td><td style="font-size:11.5px;color:var(--sub);word-break:break-all">${esc(base)}?book=1&coach=${encodeURIComponent(t)}</td>
+    <td><button class="btn small ghost" onclick="navigator.clipboard.writeText('${base}?book=1&coach=${encodeURIComponent(t)}').then(()=>alert('복사됨'))">복사</button></td></tr>`).join('')}
+    <tr><td><b>공용</b> (코치 선택 가능)</td><td style="font-size:11.5px;color:var(--sub);word-break:break-all">${esc(base)}?book=1</td>
+    <td><button class="btn small ghost" onclick="navigator.clipboard.writeText('${base}?book=1').then(()=>alert('복사됨'))">복사</button></td></tr>
+  </tbody></table>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button></div>`);
+}
+
+/* ================= 회원 관리 ================= */
+function viewMembers(){
+  const f=MEM_FILTER;
+  let list=DB.members.filter(m=>
+    (!f.q||m.name.includes(f.q))&&(!f.trainer||m.trainer===f.trainer)&&(f.status==='all'||m.status===f.status)
+  ).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  return `
+  <div class="toolbar">
+    <input placeholder="이름 검색" value="${esc(f.q)}" oninput="MEM_FILTER.q=this.value;render()" style="width:150px">
+    <select onchange="MEM_FILTER.trainer=this.value;render()"><option value="">담당 전체</option>${DB.trainers.map(t=>`<option ${f.trainer===t?'selected':''}>${esc(t)}</option>`).join('')}</select>
+    <select onchange="MEM_FILTER.status=this.value;render()">
+      <option value="active" ${f.status==='active'?'selected':''}>활성</option>
+      <option value="paused" ${f.status==='paused'?'selected':''}>휴면</option>
+      <option value="ended" ${f.status==='ended'?'selected':''}>종료</option>
+      <option value="all" ${f.status==='all'?'selected':''}>전체</option>
+    </select>
+    <span style="font-size:12px;color:var(--sub)">${list.length}명</span>
+    <span class="sp"></span>
+    <button class="btn" onclick="openMember()">+ 신규 회원 등록</button>
+  </div>
+  <div class="card">
+    <table><thead><tr><th>이름</th><th>담당</th><th>프로그램</th><th>진행 (자동)</th><th>잔여</th><th>회당 가격</th><th>초/재</th><th>상태</th></tr></thead>
+    <tbody>${list.length?list.map(m=>{
+      const u=usedOf(m),t=totalOf(m),r=t-u,pct=t?Math.min(100,Math.round(u/t*100)):0;
+      const lastPkg=(m.packages||[]).slice(-1)[0];
+      return `<tr class="clickable" onclick="openMember('${m.id}')">
+        <td><b>${esc(m.name)}</b>${m.referredBy?` <span class="badge b-vio">소개:${esc(m.referredBy)}</span>`:''}</td>
+        <td>${esc(m.trainer||'-')}</td><td>${esc(m.program||'PT')}</td>
+        <td><span class="progress"><i class="${r<=0?'full':r<=3?'near':''}" style="width:${pct}%"></i></span> <span class="mono" style="font-weight:700">${u}/${t}</span></td>
+        <td>${r<=0?'<span class="badge b-bad">만료</span>':r<=3?`<span class="badge b-warn">${r}회 🔔</span>`:`<span class="mono">${r}회</span>`}</td>
+        <td class="mono">${lastPkg?fmtW(lastPkg.perPrice):'-'}</td>
+        <td>${(m.packages||[]).length>1?'<span class="badge b-ok">재</span>':'<span class="badge b-blue">초</span>'}</td>
+        <td>${{active:'<span class="badge b-ok">활성</span>',paused:'<span class="badge b-gray">휴면</span>',ended:'<span class="badge b-gray">종료</span>'}[m.status]||''}</td>
+      </tr>`;}).join(''):`<tr><td colspan="8" class="empty">회원이 없습니다.</td></tr>`}</tbody></table>
+  </div>`;
+}
+function openMember(mid){
+  const m=mid?DB.members.find(x=>x.id===mid):null;
+  const pkgs=m?(m.packages||[]):[];
+  const hist=m?memberSessions(m.id).sort((a,b)=>(b.date+String(b.hour).padStart(2,'0')).localeCompare(a.date+String(a.hour).padStart(2,'0'))).slice(0,40):[];
+  const om=m?ordinalMap(m.id):{};
+  openModal(`
+  <h3>${m?esc(m.name)+' — 회원 정보':'신규 회원 등록'}</h3>
+  ${m?`<div class="note" style="margin-bottom:12px">진행 <b>${usedOf(m)} / ${totalOf(m)}</b> (잔여 ${remainOf(m)}회) = 이관분 ${m.carryUsed||0} + 시스템 기록 ${memberSessions(m.id).filter(countable).length}. <b>기록으로만 변동됩니다.</b></div>`:''}
+  <div class="frm">
+    <div><label>이름 *</label><input id="mf-name" value="${m?esc(m.name):''}"></div>
+    <div><label>연락처</label><input id="mf-phone" value="${m?esc(m.phone||''):''}" placeholder="010-"></div>
+    <div><label>담당 코치</label><select id="mf-trainer">${DB.trainers.map(t=>`<option ${m&&m.trainer===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+    <div><label>프로그램</label><select id="mf-program">${PROGRAMS.map(p=>`<option ${m&&m.program===p?'selected':''}>${p}</option>`).join('')}</select></div>
+    <div><label>상태</label><select id="mf-status"><option value="active" ${!m||m.status==='active'?'selected':''}>활성</option><option value="paused" ${m&&m.status==='paused'?'selected':''}>휴면</option><option value="ended" ${m&&m.status==='ended'?'selected':''}>종료(이탈)</option></select></div>
+    <div><label>소개해 주신 분</label><input id="mf-ref" value="${m?esc(m.referredBy||''):''}"></div>
+    <div class="full"><label>가능한 요일·시간</label><input id="mf-pref" value="${m?esc(m.pref||''):''}" placeholder="예: 화·목 오전 10시"></div>
+    <div class="full"><label>운동 목적 / 임상 특이사항</label><textarea id="mf-goal" rows="2">${m?esc(m.goal||''):''}</textarea></div>
+    <div class="full"><label>인수인계 메모</label><textarea id="mf-notes" rows="2">${m?esc(m.notes||''):''}</textarea></div>
+    ${!m?`
+    <div class="full" style="border-top:1px solid var(--line);padding-top:10px"><b style="font-size:13px">첫 등록 패키지 (결제)</b></div>
+    <div><label>등록 횟수 *</label><input id="mf-count" type="number" min="1" placeholder="예: 20"></div>
+    <div><label>회당 가격</label><input id="mf-per" type="number" placeholder="예: 30000" oninput="mfAmt()"></div>
+    <div><label>결제 금액</label><input id="mf-amount" type="number" placeholder="자동: 횟수×회당"></div>
+    <div><label>결제일</label><input id="mf-pdate" type="date" value="${today()}"></div>
+    <div class="full"><label>기존 회원 이관 시: 이미 사용한 횟수 (최초 1회만)</label><input id="mf-carry" type="number" value="0" min="0"></div>`:''}
+  </div>
+  ${m?`
+  <div style="margin-top:14px"><b style="font-size:13px">결제·패키지 이력</b> <button class="btn small" style="margin-left:8px" onclick="addPackage('${m.id}')">+ 재등록 결제 추가</button>
+    <div class="hist" style="margin-top:6px"><table><thead><tr><th>결제일</th><th>횟수</th><th>회당</th><th>금액</th><th></th></tr></thead><tbody>
+    ${pkgs.map((p,i)=>`<tr><td>${p.date||'<span class="badge b-gray">이관</span>'}</td><td class="mono">${p.count}회</td><td class="mono">${fmtW(p.perPrice)}</td><td class="mono">${p.date?fmtW(p.amount):'-'}</td><td>${i===0?'<span class="badge b-blue">초</span>':'<span class="badge b-ok">재</span>'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">결제 이력 없음</td></tr>'}
+    </tbody></table></div></div>
+  <div style="margin-top:12px"><b style="font-size:13px">최근 세션 기록</b>
+    <div class="hist" style="margin-top:6px"><table><tbody>
+    ${hist.map(s=>`<tr><td>${korDate(s.date)} ${s.hour}:00</td><td>${esc(s.trainer)}</td><td>${{booked:'<span class="badge b-blue">예약</span>',done:'<span class="badge b-ok">완료</span>',noshow:'<span class="badge b-bad">노쇼</span>',cancelled:'<span class="badge b-gray">취소</span>',late_cancel:'<span class="badge b-warn">차감대기</span>'}[s.status]}</td><td class="mono">${om[s.id]?om[s.id]+'/'+totalOf(m):'-'}</td></tr>`).join('')||'<tr><td class="empty">세션 기록 없음</td></tr>'}
+    </tbody></table></div></div>`:''}
+  <div class="modal-actions">
+    ${m?`<button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="delMember('${m.id}')">삭제</button>`:''}
+    <button class="btn ghost" onclick="closeModal()">닫기</button>
+    <button class="btn" onclick="saveMember('${m?m.id:''}')">저장</button>
+  </div>`);
+}
+function delMember(mid){
+  if(!confirm('회원과 모든 세션 기록을 삭제할까요? 되돌릴 수 없습니다.'))return;
+  DB.deleted.push({id:mid,ts:now()});
+  memberSessions(mid).forEach(s=>DB.deleted.push({id:s.id,ts:now()}));
+  DB.members=DB.members.filter(x=>x.id!==mid);
+  DB.sessions=DB.sessions.filter(s=>s.memberId!==mid);
+  save();closeModal();render();
+}
+function mfAmt(){const c=+document.getElementById('mf-count').value||0,p=+document.getElementById('mf-per').value||0;document.getElementById('mf-amount').value=c*p;}
+function saveMember(mid){
+  const name=document.getElementById('mf-name').value.trim();
+  if(!name){alert('이름을 입력해 주세요.');return;}
+  const base={name,phone:document.getElementById('mf-phone').value.trim(),trainer:document.getElementById('mf-trainer').value,
+    program:document.getElementById('mf-program').value,status:document.getElementById('mf-status').value,
+    referredBy:document.getElementById('mf-ref').value.trim(),pref:document.getElementById('mf-pref').value.trim(),
+    goal:document.getElementById('mf-goal').value.trim(),notes:document.getElementById('mf-notes').value.trim(),updatedAt:now()};
+  if(mid){Object.assign(DB.members.find(x=>x.id===mid),base);}
+  else{
+    const count=+document.getElementById('mf-count').value||0;
+    if(!count){alert('첫 등록 횟수를 입력해 주세요.');return;}
+    const per=+document.getElementById('mf-per').value||0;
+    const amount=+document.getElementById('mf-amount').value||count*per;
+    DB.members.push({id:uid(),...base,carryUsed:+document.getElementById('mf-carry').value||0,followUp:{status:'대기',memo:''},
+      packages:[{id:uid(),date:document.getElementById('mf-pdate').value||today(),count,perPrice:per,amount}]});
+  }
+  save();closeModal();render();
+}
+function addPackage(mid){
+  const m=DB.members.find(x=>x.id===mid);
+  const last=(m.packages||[]).slice(-1)[0]||{};
+  openModal(`
+  <h3>${esc(m.name)} — 재등록 결제 추가</h3>
+  <div class="note" style="margin-bottom:12px">현재 ${usedOf(m)}/${totalOf(m)} (잔여 ${remainOf(m)}회). 결제 추가 시 총 횟수가 늘고 회차는 이어서 자동 계산됩니다.</div>
+  <div class="frm">
+    <div><label>추가 횟수 *</label><input id="pk-count" type="number" min="1" value="${last.count||20}" oninput="pkAmt()"></div>
+    <div><label>회당 가격</label><input id="pk-per" type="number" value="${last.perPrice||30000}" oninput="pkAmt()"></div>
+    <div><label>결제 금액</label><input id="pk-amount" type="number" value="${(last.count||20)*(last.perPrice||30000)}"></div>
+    <div><label>결제일</label><input id="pk-date" type="date" value="${today()}"></div>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" onclick="openMember('${mid}')">뒤로</button>
+  <button class="btn" onclick="savePackage('${mid}')">결제 저장 (재등록)</button></div>`);
+}
+function savePackage(mid){
+  const c=+document.getElementById('pk-count').value||0;
+  if(!c){alert('횟수를 입력해 주세요.');return;}
+  const m=DB.members.find(x=>x.id===mid);
+  m.packages.push({id:uid(),date:document.getElementById('pk-date').value,count:c,perPrice:+document.getElementById('pk-per').value||0,amount:+document.getElementById('pk-amount').value||0});
+  m.followUp={status:'재등록 확정',memo:(m.followUp||{}).memo||'',date:today()};
+  m.status='active';m.updatedAt=now();
+  save();openMember(mid);
+}
+function pkAmt(){const c=+document.getElementById('pk-count').value||0,p=+document.getElementById('pk-per').value||0;document.getElementById('pk-amount').value=c*p;}
+
+/* ================= 재등록 관리 ================= */
+function viewRenew(){
+  const golden=goldenList(),expired=expiredList();
+  const mk=today().slice(0,7);
+  const renewed=DB.members.filter(m=>(m.packages||[]).some((p,i)=>i>0&&monthKey(p.date)===mk));
+  const churned=DB.members.filter(m=>m.status==='ended');
+  function row(m){
+    const f=m.followUp||{status:'대기',memo:''};
+    return `<tr>
+      <td class="clickable" onclick="openMember('${m.id}')"><b>${esc(m.name)}</b></td>
+      <td>${esc(m.trainer)}</td>
+      <td class="mono" style="font-weight:700">${usedOf(m)}/${totalOf(m)}</td>
+      <td>${remainOf(m)<=0?'<span class="badge b-bad">만료</span>':`<span class="badge b-warn">${remainOf(m)}회</span>`}</td>
+      <td>${esc(m.pref||'-')}</td>
+      <td><select onchange="setFollow('${m.id}','status',this.value)">${FOLLOW.map(x=>`<option ${f.status===x?'selected':''}>${x}</option>`).join('')}</select></td>
+      <td><input value="${esc(f.memo||'')}" placeholder="메모" onchange="setFollow('${m.id}','memo',this.value)" style="width:100%"></td>
+      <td><button class="btn small" onclick="addPackage('${m.id}')">결제</button></td>
+    </tr>`;
+  }
+  return `
+  <div class="note" style="margin-bottom:14px"><b>재등록 플레이북</b> — 잔여 3회 도달 시 자동으로 올라옵니다. ① 잔여 3회: 성과 리뷰 + 재등록 안내 → ② 잔여 1회: 결제 확정 → ③ 만료 후 7일 내 미등록 시 이탈 처리·사유 기록. <b>시스템이 타이밍을 알려주는 구조</b>입니다.</div>
+  <div class="card"><h2>🔔 재등록 골든타임 <span class="hint">잔여 3회 이하 — 자동 추출</span></h2>
+    ${golden.length||expired.length?`<table><thead><tr><th>회원</th><th>담당</th><th>진행</th><th>잔여</th><th>가능 시간</th><th>팔로업</th><th>메모</th><th></th></tr></thead>
+    <tbody>${expired.map(row).join('')}${golden.sort((a,b)=>remainOf(a)-remainOf(b)).map(row).join('')}</tbody></table>`
+    :'<div class="empty">재등록 임박 회원 없음</div>'}
+  </div>
+  <div class="two-col">
+    <div class="card"><h2>이번 달 재등록 완료 <span class="hint">${mk}</span></h2>
+      ${renewed.length?`<table><tbody>${renewed.map(m=>{const p=(m.packages||[]).filter((x,i)=>i>0&&monthKey(x.date)===mk);return `<tr><td class="clickable" onclick="openMember('${m.id}')"><b>${esc(m.name)}</b></td><td>${esc(m.trainer)}</td><td class="mono">${p.map(x=>x.count+'회 · '+fmtW(x.amount)).join(', ')}</td></tr>`;}).join('')}</tbody></table>`:'<div class="empty">이번 달 재등록 없음</div>'}
+    </div>
+    <div class="card"><h2>이탈 회원</h2>
+      ${churned.length?`<table><tbody>${churned.map(m=>`<tr><td class="clickable" onclick="openMember('${m.id}')"><b>${esc(m.name)}</b></td><td>${esc(m.trainer)}</td><td class="mono">${usedOf(m)}/${totalOf(m)}</td><td style="color:var(--sub);font-size:12px">${esc((m.followUp||{}).memo||m.notes||'')}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">이탈 기록 없음</div>'}
+    </div>
+  </div>`;
+}
+function setFollow(mid,k,v){const m=DB.members.find(x=>x.id===mid);m.followUp=m.followUp||{status:'대기',memo:''};m.followUp[k]=v;m.updatedAt=now();if(k==='status'&&v==='이탈')m.status='ended';save();render();}
+
+/* ================= 설정 · 도움말 ================= */
+function viewSettings(){
+  const cfg=getCfg();
+  return `
+  <div class="two-col">
+  <div>
+    <div class="card"><h2>🌐 서버 연동 (전 직원 공유) ${cfg?'<span class="badge b-ok">연결됨</span>':'<span class="badge b-gray">미연결</span>'}</h2>
+      <div class="note" style="margin-bottom:10px"><b>전체 순서: ① Supabase 연결(아래) → ② 웹에 올리기(GitHub/Netlify) → ③ 폰에서 접속·앱 설치.</b> Supabase(무료)에 연결하면 6명 모두 어디서든 같은 데이터를 보고 저장하며 15초마다 자동 동기화됩니다.</div>
+      <div class="frm">
+        <div class="full"><label>Supabase 프로젝트 URL</label><input id="sb-url" placeholder="https://xxxx.supabase.co" value="${cfg?esc(cfg.url):''}"></div>
+        <div class="full"><label>anon public 키</label><input id="sb-key" placeholder="eyJhbGciOi..." value="${cfg?esc(cfg.key):''}"></div>
+      </div>
+      <div class="pill-row" style="margin-top:8px">
+        <button class="btn" onclick="connectSB()">저장 & 연결 테스트</button>
+        ${cfg?`<button class="btn ghost" onclick="localStorage.removeItem(CFGKEY);SYNC.syncedVer=null;render()">연결 해제</button>`:''}
+      </div>
+      <h4 style="margin:14px 0 4px;font-size:13px">처음 설정 (1회, 약 5분)</h4>
+      <div class="help"><ol>
+        <li>supabase.com 가입 → New Project 생성 (무료)</li>
+        <li>왼쪽 메뉴 SQL Editor → 아래 코드 붙여넣고 Run</li>
+        <li>Settings → API에서 Project URL과 anon public 키 복사 → 위에 입력</li>
+        <li>연결된 이 파일을 카톡 등으로 선생님들께 전달 (같은 URL/키 입력) 또는 웹에 올려 링크 공유</li>
+      </ol></div>
+      <code class="sql">create table if not exists fp_store (
+  id int primary key,
+  data jsonb not null,
+  version bigint not null default 1
+);
+alter table fp_store enable row level security;
+create policy "fp_anon" on fp_store
+  for all to anon using (true) with check (true);</code>
+      <div class="note warn">간단한 시작을 위해 링크·키를 아는 사람은 누구나 접근 가능한 구조입니다. 회원 예약 링크를 외부에 공유해도 키가 포함되므로, 정식 운영 단계에서는 계정 로그인(Supabase Auth)을 붙이는 것을 권장합니다.</div>
+      <h4 style="margin:14px 0 4px;font-size:13px">웹에 올리기 — 카톡 링크·폰 접속용 (2단계 중 택1)</h4>
+      <div class="help"><ol>
+        <li><b>방법 A · Netlify (가장 쉬움, 5분)</b>: netlify.com 로그인 → Sites → "Add new site > Deploy manually"에 이 HTML 파일을 드래그 → 파일명을 <b>index.html</b>로 바꿔 올리면 생성된 https 주소가 우리 시스템 주소</li>
+        <li><b>방법 B · GitHub Pages</b>: github.com 로그인 → New repository(예: firstphysio) → "uploading an existing file"로 이 파일을 <b>index.html</b> 이름으로 업로드 → Settings > Pages > Branch: main 저장 → 몇 분 후 https://아이디.github.io/firstphysio/ 주소 생성</li>
+      </ol></div>
+      <div class="note ok">주소가 생기면: ① 그 주소를 선생님들 카톡에 공유(폰에서 접속 가능) ② 스케줄 탭 🔗 버튼의 회원 예약 링크가 자동으로 그 주소 기준이 되어 <b>카톡에서 클릭 가능한 링크</b>가 됩니다. 파일 수정이 필요하면 새 파일을 같은 방식으로 다시 올리면 끝 (데이터는 서버에 있어 안전).</div>
+      <h4 style="margin:14px 0 4px;font-size:13px">📱 휴대폰 앱으로 설치</h4>
+      <div class="note">호스팅 주소를 폰에서 연 뒤 — <b>아이폰</b>: Safari 공유 버튼 → "홈 화면에 추가" / <b>안드로이드</b>: Chrome 메뉴(⋮) → "홈 화면에 추가". 홈 화면에 FP 아이콘이 생기고 앱처럼 전체화면으로 실행됩니다. 서버 연결 상태라 모든 선생님이 폰에서 보고 입력한 내용이 실시간 공유됩니다.</div>
+    </div>
+    <div class="card"><h2>코치 관리 <span class="hint">색상·이니셜은 스케줄 표시용 (동명 성씨 자동 구분)</span></h2>
+      <table><thead><tr><th>코치</th><th>색상</th><th>이니셜</th><th></th></tr></thead><tbody>
+      ${DB.trainers.map((t,i)=>{const tm=tMeta(t);return `<tr>
+        <td><b>${esc(t)}</b></td>
+        <td><input type="color" value="${tm.color}" onchange="tMeta('${esc(t)}').color=this.value;DB.metaTs=now();save();render()" style="width:44px;height:30px;padding:2px"></td>
+        <td><input value="${esc(tm.initial)}" maxlength="4" style="width:70px" onchange="tMeta('${esc(t)}').initial=this.value.trim()||'${esc(t)}';DB.metaTs=now();save();render()"></td>
+        <td style="text-align:right"><button class="btn small ghost" style="color:var(--bad)" onclick="removeTrainer(${i})">퇴사 처리</button></td></tr>`;}).join('')}
+      </tbody></table>
+      <div style="display:flex;gap:8px;margin-top:10px"><input id="new-trainer" placeholder="새 코치 이름"><button class="btn" onclick="addTrainer()">추가</button></div>
+      <div class="note" style="margin-top:8px">새 코치는 추가 즉시 색상·이니셜이 자동 배정되고 전 기기에 동기화됩니다. [퇴사 처리]를 누르면 담당 회원과 예약 수업의 인수인계를 안내하며, 과거 기록·통계는 그대로 보존됩니다.</div>
+    </div>
+    <div class="card"><h2>운영 규칙 · 데이터</h2>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer;margin-bottom:10px">
+        <input type="checkbox" ${DB.noshowDeduct?'checked':''} onchange="DB.noshowDeduct=this.checked;DB.metaTs=now();save();render()" style="width:auto"> 노쇼 시 횟수 차감
+      </label>
+      <div class="pill-row">
+        <button class="btn" onclick="exportJSON()">JSON 백업</button>
+        <label class="btn ghost" style="display:inline-block;cursor:pointer">JSON 가져오기<input type="file" accept=".json" style="display:none" onchange="importJSON(this)"></label>
+        <button class="btn ghost" onclick="if(confirm('2026년 7월 퍼피짐 스케줄표 데이터(73명)를 다시 불러올까요? 현재 데이터는 초기화됩니다.')){localStorage.removeItem(KEY);load();save();render();}">7월 실데이터 재로드</button>
+        <button class="btn danger" onclick="if(confirm('정말 모든 데이터를 삭제할까요?')&&confirm('백업하셨나요? 되돌릴 수 없습니다.')){localStorage.removeItem(KEY);DB=fresh();saveLocal();render();}">전체 초기화</button>
+      </div>
+    </div>
+  </div>
+  <div class="card help">
+    <h2>운영 체계 — 설계 원칙</h2>
+    <h4>1. 원자료는 한 곳에서만 입력한다</h4>
+    <p>횟수는 어디에도 직접 입력하지 않습니다. "수업 완료"를 누르면 기록이 남고 모든 회차·잔여·KPI가 자동 계산됩니다. 복붙 실수가 <b>구조적으로 불가능</b>합니다. <span class="src">— 로드맵 15p · Davenport 『Competing on Analytics』</span></p>
+    <h4>2. 예약·취소 규칙 (회원 예약 페이지 자동 적용)</h4>
+    <p>수업 시작 <b>12시간 이내 취소 → 차감 판단 대기(⚠)</b>로 표시되고 코치에게 알림이 갑니다. 카톡으로 사정을 듣고 대시보드에서 "차감 확정" 또는 "차감 없이 취소"를 선택하세요(코치 재량). 12시간 이전 취소는 자유. <b>12시간 이내 신규 예약도 차단</b>됩니다(갑작스러운 예약 방지). 직원은 제한 없이 등록 가능.</p>
+    <h4>3. 회원은 생애주기로 관리한다</h4>
+    <p>신규 → 활성 → 골든타임(잔여 3회) → 재등록/이탈. 시스템이 타이밍을 자동으로 알려줍니다. <span class="src">— Buttle 『CRM』</span></p>
+    <h4>4. 측정하는 지표만 관리된다</h4>
+    <p>재등록률·노쇼율·트레이너 성과·월 결제액 — 주간·월간 리뷰를 숫자로 진행하세요. <span class="src">— Marr 『KPI』 · Grove/Horowitz 운영 리듬</span></p>
+    <h4>5. 알림 체계</h4>
+    <p>회원이 예약·취소하면 우측 상단 🔔에 쌓이고, 브라우저 알림을 켜면 팝업도 옵니다. 수업 24시간 전 안내는 [스케줄 → 📩 수업 안내문]으로 매일 저녁 생성해 카톡 전송하세요. 완전 자동 발송(알림톡)은 다음 확장 단계입니다.</p>
+    <h4>7월 데이터 이관 안내</h4>
+    <p>퍼피짐 스케줄표(2026년 7월)에서 회원 73명, 세션 178건을 자동 추출해 넣었습니다. 각 회원의 현재 회차는 시트의 마지막 기록과 일치하도록 검증했습니다. 시트가 흐릿한 일부 항목은 시간대·담당이 다를 수 있으니 [회원 관리]에서 확인·수정해 주세요. 회당 가격은 회원 스케줄 시트에서 가져왔고, 없는 회원은 3만원 기본값입니다. 이관 결제분은 매출 통계에 잡히지 않습니다(이중 계산 방지).</p>
+  </div>
+  </div>`;
+}
+async function connectSB(){
+  const url=document.getElementById('sb-url').value.trim();
+  const key=document.getElementById('sb-key').value.trim();
+  if(!url||!key){alert('URL과 anon 키를 입력해 주세요.');return;}
+  setCfg(url,key);
+  try{
+    const cfg=getCfg();
+    const r=await fetch(cfg.url+'/rest/v1/fp_store?id=eq.1&select=version',{headers:hdrs(cfg)});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const rows=await r.json();
+    if(!rows.length){await pushInit(cfg);alert('연결 성공! 현재 데이터를 서버에 올렸습니다.');}
+    else{
+      if(confirm('서버에 기존 데이터가 있습니다. 서버 데이터와 병합할까요?')){await pullSync(true);}
+      alert('연결 성공!');
+    }
+    SYNC.state='on';
+  }catch(e){alert('연결 실패: '+e.message+'\nURL/키와 SQL 실행 여부를 확인해 주세요.');SYNC.state='err';}
+  render();
+}
+function exportJSON(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,2)],{type:'application/json'}));
+  a.download='퍼스트피지오_백업_'+today()+'.json';a.click();
+}
+function importJSON(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.members||!d.sessions)throw 0;if(confirm('가져온 데이터로 교체할까요?')){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];save();render();alert('완료');}}catch(e){alert('올바른 백업 파일이 아닙니다.');}};
+  r.readAsText(f);
+}
+
+/* ================= 회원 예약 모드 ================= */
+let BK={coach:PARAMS.get('coach')||'',memberId:'',weeks:2};
+function renderBooking(){
+  const app=document.getElementById('app');
+  const cfg=getCfg();
+  const coach=BK.coach&&DB.trainers.includes(BK.coach)?BK.coach:'';
+  const mems=coach?DB.members.filter(m=>m.status==='active'&&m.trainer===coach).sort((a,b)=>a.name.localeCompare(b.name,'ko')):[];
+  const me=DB.members.find(m=>m.id===BK.memberId);
+  let body='';
+  if(!cfg){
+    body=`<div class="note warn">아직 서버에 연결되지 않은 파일입니다. 센터에 문의해 주세요.</div>`;
+  }else if(!coach){
+    body=`<div class="card"><h2>담당 코치 선택</h2><div class="pill-row">${DB.trainers.map(t=>`<button class="btn ghost" onclick="BK.coach='${esc(t)}';BK.memberId='';render()">${esc(t)} 코치</button>`).join('')}</div></div>`;
+  }else if(!me){
+    body=`<div class="card"><h2>${esc(coach)} 코치 — 회원 선택</h2>
+      <select style="width:100%" onchange="BK.memberId=this.value;render()"><option value="">내 이름 선택…</option>
+      ${mems.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>
+      ${PARAMS.get('coach')?'':`<div style="margin-top:8px"><button class="btn ghost small" onclick="BK.coach='';render()">← 코치 다시 선택</button></div>`}
+    </div>`;
+  }else{
+    const om=ordinalMap(me.id);
+    const myBooked=memberSessions(me.id).filter(s=>s.status==='booked').sort((a,b)=>(a.date+a.hour).localeCompare(b.date+b.hour));
+    const rem=remainOf(me)-myBooked.length;
+    const days=[...Array(BK.weeks*7)].map((_,i)=>addDays(today(),i));
+    body=`
+    <div class="card">
+      <h2>${esc(me.name)}님 <span class="hint">담당: ${esc(coach)} 코치</span></h2>
+      <div class="note">진행 <b>${usedOf(me)} / ${totalOf(me)}</b> · 예약 대기 ${myBooked.length}건 · 예약 가능 잔여 <b>${Math.max(0,rem)}회</b></div>
+      ${myBooked.length?`<div style="margin-top:10px"><b style="font-size:13px">나의 예약</b><table style="margin-top:4px"><tbody>
+      ${myBooked.map(s=>`<tr><td>${korDate(s.date)} ${s.hour}:00</td><td class="mono">${om[s.id]}/${totalOf(me)}회차</td>
+      <td style="text-align:right"><button class="btn small ghost" onclick="memberCancel('${s.id}')">취소</button></td></tr>`).join('')}</tbody></table></div>`:''}
+    </div>
+    <div class="card">
+      <h2>예약하기 <span class="hint">원하는 시간을 누르세요</span></h2>
+      ${days.map(d=>{
+        const slots=HOURS.map(h=>{
+          const mine=DB.sessions.find(s=>s.date===d&&s.hour===h&&s.memberId===me.id&&['booked','done'].includes(s.status));
+          const taken=DB.sessions.find(s=>s.date===d&&s.hour===h&&s.trainer===coach&&['booked','done'].includes(s.status));
+          const blocked=isBlocked(coach,d,h);
+          const closed=hoursUntil(d,h)<BOOK_LEAD_HOURS;
+          let cls='open',fn=`memberBook('${d}',${h})`;
+          if(mine){cls='mine';fn=`memberCancel('${mine.id}')`;}
+          else if(blocked){cls='blockedS';fn='';}
+          else if(taken){cls='taken';fn='';}
+          else if(closed){cls='closed';fn='';}
+          return `<button class="slot ${cls}" ${fn?`onclick="${fn}"`:'disabled'}>${h}:00</button>`;
+        }).join('');
+        return `<div class="slot-day"><div class="d">${korDate(d)}${d===today()?' · 오늘':''}</div><div class="slots">${slots}</div></div>`;
+      }).join('')}
+      <button class="btn ghost" style="width:100%;margin-top:6px" onclick="BK.weeks+=1;render()">더 보기 (+1주)</button>
+    </div>
+    <div class="note">
+      <b>예약·취소 안내</b><br>
+      · 수업 시작 <b>12시간 전까지</b> 자유롭게 예약·취소하실 수 있습니다.<br>
+      · 수업 시작 12시간 이내 취소는 <b>횟수가 차감될 수 있습니다</b> (부득이한 사정은 코치에게 연락 주시면 확인 후 조정해 드립니다).<br>
+      · 수업 시작 12시간 이내에는 새 예약이 불가합니다. 급한 경우 코치에게 직접 연락해 주세요.
+    </div>
+    <div style="margin-top:10px;text-align:center"><button class="btn ghost small" onclick="BK.memberId='';render()">다른 회원 선택</button></div>`;
+  }
+  app.innerHTML=`<div class="book-wrap">
+    <div class="book-hd"><h1>FIRST <span>PHYSIO</span> 수업 예약</h1>
+    <div style="font-size:12px;color:var(--sub);margin-top:4px" id="bk-sync">${cfg?'실시간 예약 시스템':'서버 미연결'}</div></div>
+    ${body}</div>`;
+}
+async function memberBook(date,hour){
+  await pullSync(true);
+  const me=DB.members.find(m=>m.id===BK.memberId);const coach=BK.coach;
+  if(hoursUntil(date,hour)<BOOK_LEAD_HOURS){alert('수업 시작 12시간 이내에는 예약할 수 없습니다. 코치에게 직접 연락해 주세요.');render();return;}
+  if(isBlocked(coach,date,hour)||DB.sessions.find(s=>s.date===date&&s.hour===hour&&s.trainer===coach&&['booked','done'].includes(s.status))){alert('방금 다른 예약이 들어왔거나 불가한 시간입니다. 다른 시간을 선택해 주세요.');render();return;}
+  const myBooked=memberSessions(me.id).filter(s=>s.status==='booked').length;
+  if(remainOf(me)-myBooked<=0){alert('잔여 횟수가 없습니다. 재등록 후 예약해 주세요.');return;}
+  if(!confirm(`${korDate(date)} ${hour}:00 수업을 예약할까요?`))return;
+  DB.sessions.push({id:uid(),memberId:me.id,trainer:coach,date,hour,status:'booked',bookedBy:'member',updatedAt:now()});
+  addEvent('book',`${me.name}님이 ${korDate(date)} ${hour}시 수업을 예약했습니다 (${coach} 코치)`);
+  saveLocal();await pushSync(false);
+  alert('예약 완료! 수업 전날 안내 연락을 드립니다.');render();
+}
+async function memberCancel(sid){
+  await pullSync(true);
+  const s=DB.sessions.find(x=>x.id===sid);if(!s){render();return;}
+  const me=DB.members.find(m=>m.id===s.memberId);
+  const hrs=hoursUntil(s.date,s.hour);
+  if(hrs<CANCEL_HOURS){
+    if(!confirm(`수업 시작 12시간 이내 취소입니다.\n횟수가 차감될 수 있으며, 부득이한 사정은 코치 확인 후 조정됩니다.\n그래도 취소할까요?`))return;
+    s.status='late_cancel';s.updatedAt=now();
+    addEvent('late_cancel',`⚠ ${me.name}님이 ${korDate(s.date)} ${s.hour}시 수업을 12시간 이내 취소 — 차감 여부 판단 필요 (${s.trainer} 코치)`);
+  }else{
+    if(!confirm(`${korDate(s.date)} ${s.hour}:00 예약을 취소할까요? (차감 없음)`))return;
+    s.status='cancelled';s.updatedAt=now();
+    addEvent('cancel',`${me.name}님이 ${korDate(s.date)} ${s.hour}시 수업을 취소했습니다 (${s.trainer} 코치)`);
+  }
+  saveLocal();await pushSync(false);
+  alert('취소되었습니다.');render();
+}
+
+/* ================= 모달 ================= */
+function openModal(html){document.getElementById('modal').innerHTML=html;document.getElementById('overlay').classList.add('show');}
+function closeModal(){document.getElementById('overlay').classList.remove('show');}
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
+
+/* ================= 시작 ================= */
+load();
+render();
+pullSync(false);
+setInterval(()=>pullSync(false),15000);
+</script>
+</body>
+</html>
