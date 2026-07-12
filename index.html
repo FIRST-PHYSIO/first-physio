@@ -232,6 +232,7 @@ function countable(s){return s.status==='done'||(DB.noshowDeduct&&s.status==='no
 function memberSessions(mid){return DB.sessions.filter(s=>s.memberId===mid);}
 function usedOf(m){return (m.carryUsed||0)+memberSessions(m.id).filter(countable).length;}
 function totalOf(m){return (m.packages||[]).reduce((a,p)=>a+(+p.count||0),0);}
+function perOf(m){const p=(m.packages||[]).slice(-1)[0];return p?(+p.perPrice||0):0;}
 function remainOf(m){return totalOf(m)-usedOf(m);}
 function ordinalMap(mid){
   const m=DB.members.find(x=>x.id===mid);if(!m)return {};
@@ -446,11 +447,13 @@ function viewDash(){
   const maxPay=Math.max(...payArr,1),maxDone=Math.max(...doneArr,1);
   const tRows=DB.trainers.map(t=>{
     const mems=DB.members.filter(m=>m.status==='active'&&m.trainer===t);
-    const doneS=DB.sessions.filter(s=>s.trainer===t&&s.status==='done'&&monthKey(s.date)===mk).length;
+    const doneList=DB.sessions.filter(s=>s.trainer===t&&s.status==='done'&&monthKey(s.date)===mk);
+    const doneS=doneList.length;
+    let settle=0;doneList.forEach(s=>{const m=DB.members.find(x=>x.id===s.memberId);if(m)settle+=perOf(m);});
     const ns=DB.sessions.filter(s=>s.trainer===t&&s.status==='noshow'&&monthKey(s.date)===mk).length;
     let pay=0;mems.forEach(m=>(m.packages||[]).forEach(p=>{if(monthKey(p.date)===mk)pay+=(+p.amount||0);}));
     const gold=mems.filter(m=>totalOf(m)>0&&remainOf(m)<=3).length;
-    return {t,mem:mems.length,doneS,ns,pay,gold};
+    return {t,mem:mems.length,doneS,ns,pay,gold,settle};
   });
   return `
   <div class="toolbar">
@@ -479,8 +482,10 @@ function viewDash(){
     </div>
   </div>
   <div class="card"><h2>트레이너별 성과 <span class="hint">${mk} · 주간/월간 리뷰 자료</span></h2>
-    <table><thead><tr><th>트레이너</th><th>담당 활성 회원</th><th>완료 세션</th><th>노쇼</th><th>담당 결제액</th><th>재등록 임박</th></tr></thead>
-    <tbody>${tRows.map(r=>`<tr><td><b>${esc(r.t)}</b></td><td class="mono">${r.mem}명</td><td class="mono">${r.doneS}회</td><td class="mono">${r.ns}</td><td class="mono">${fmtW(r.pay)}</td><td>${r.gold?`<span class="badge b-warn">${r.gold}명</span>`:'-'}</td></tr>`).join('')}</tbody></table>
+    <table><thead><tr><th>트레이너</th><th>담당 활성 회원</th><th>완료 세션</th><th>💰 수업료 정산</th><th>노쇼</th><th>담당 결제액</th><th>재등록 임박</th></tr></thead>
+    <tbody>${tRows.map(r=>`<tr><td><b style="color:${tMeta(r.t).color}">${esc(r.t)}</b></td><td class="mono">${r.mem}명</td><td class="mono">${r.doneS}회</td><td class="mono" style="font-weight:800">${fmtW(r.settle)}</td><td class="mono">${r.ns}</td><td class="mono">${fmtW(r.pay)}</td><td>${r.gold?`<span class="badge b-warn">${r.gold}명</span>`:'-'}</td></tr>`).join('')}
+    <tr style="background:#f8fafd"><td><b>합계</b></td><td class="mono">${tRows.reduce((a,r)=>a+r.mem,0)}명</td><td class="mono">${tRows.reduce((a,r)=>a+r.doneS,0)}회</td><td class="mono" style="font-weight:800">${fmtW(tRows.reduce((a,r)=>a+r.settle,0))}</td><td class="mono">${tRows.reduce((a,r)=>a+r.ns,0)}</td><td class="mono">${fmtW(tRows.reduce((a,r)=>a+r.pay,0))}</td><td></td></tr></tbody></table>
+    <div class="note" style="margin-top:10px">💰 수업료 정산 = 그 달 <b>완료 세션 수 × 각 회원의 회당 가격</b> (회당 가격 = 결제액÷횟수의 50%). 노쇼·취소는 정산 미포함. 회당 가격은 회원 카드 결제 이력에서 확인·수정.</div>
   </div>`;
 }
 function decideLate(sid,st){
@@ -879,9 +884,9 @@ function openMember(mid){
     ${m?`<div class="full"><label>이관 사용 횟수 (시스템 도입 전 사용분 — 잘못 넣은 경우만 수정)</label><input id="mf-carry" type="number" value="${m.carryUsed||0}" min="0"></div>`:''}
     ${!m?`
     <div class="full" style="border-top:1px solid var(--line);padding-top:10px"><b style="font-size:13px">첫 등록 패키지 (결제)</b></div>
-    <div><label>등록 횟수 *</label><input id="mf-count" type="number" min="1" placeholder="예: 20"></div>
-    <div><label>회당 가격</label><input id="mf-per" type="number" placeholder="예: 30000" oninput="mfAmt()"></div>
-    <div><label>결제 금액</label><input id="mf-amount" type="number" placeholder="자동: 횟수×회당"></div>
+    <div><label>등록 횟수 *</label><input id="mf-count" type="number" min="1" placeholder="예: 30" oninput="mfPerCalc()"></div>
+    <div><label>결제 금액 *</label><input id="mf-amount" type="number" placeholder="예: 1701000" oninput="mfPerCalc()"></div>
+    <div class="full"><label>회당 가격 — 결제액÷횟수의 50% 자동 (수업료 정산용, 수정 가능)</label><input id="mf-per" type="number" placeholder="자동 계산"></div>
     <div><label>결제일</label><input id="mf-pdate" type="date" value="${today()}"></div>
     <div class="full"><label>기존 회원 이관 시: 이미 사용한 횟수 (최초 1회만)</label><input id="mf-carry" type="number" value="0" min="0"></div>`:''}
   </div>
@@ -908,7 +913,7 @@ function delMember(mid){
   DB.sessions=DB.sessions.filter(s=>s.memberId!==mid);
   save();closeModal();render();
 }
-function mfAmt(){const c=+document.getElementById('mf-count').value||0,p=+document.getElementById('mf-per').value||0;document.getElementById('mf-amount').value=c*p;}
+function mfPerCalc(){const c=+document.getElementById('mf-count').value||0,a=+document.getElementById('mf-amount').value||0;if(c&&a)document.getElementById('mf-per').value=Math.round(a/c*0.5);}
 function saveMember(mid){
   const name=document.getElementById('mf-name').value.trim();
   if(!name){alert('이름을 입력해 주세요.');return;}
@@ -934,9 +939,9 @@ function addPackage(mid){
   <h3>${esc(m.name)} — 재등록 결제 추가</h3>
   <div class="note" style="margin-bottom:12px">현재 ${usedOf(m)}/${totalOf(m)} (잔여 ${remainOf(m)}회). 결제 추가 시 총 횟수가 늘고 회차는 이어서 자동 계산됩니다.</div>
   <div class="frm">
-    <div><label>추가 횟수 *</label><input id="pk-count" type="number" min="1" value="${last.count||20}" oninput="pkAmt()"></div>
-    <div><label>회당 가격</label><input id="pk-per" type="number" value="${last.perPrice||30000}" oninput="pkAmt()"></div>
-    <div><label>결제 금액</label><input id="pk-amount" type="number" value="${(last.count||20)*(last.perPrice||30000)}"></div>
+    <div><label>추가 횟수 *</label><input id="pk-count" type="number" min="1" value="${last.count||30}" oninput="pkPerCalc()"></div>
+    <div><label>결제 금액 *</label><input id="pk-amount" type="number" placeholder="예: 1701000" oninput="pkPerCalc()"></div>
+    <div class="full"><label>회당 가격 — 결제액÷횟수의 50% 자동 (수업료 정산용, 수정 가능)</label><input id="pk-per" type="number" value="${last.perPrice||''}"></div>
     <div><label>결제일</label><input id="pk-date" type="date" value="${today()}"></div>
   </div>
   <div class="modal-actions"><button class="btn ghost" onclick="openMember('${mid}')">뒤로</button>
@@ -951,16 +956,16 @@ function savePackage(mid){
   m.status='active';m.updatedAt=now();
   save();openMember(mid);
 }
-function pkAmt(){const c=+document.getElementById('pk-count').value||0,p=+document.getElementById('pk-per').value||0;document.getElementById('pk-amount').value=c*p;}
+function pkPerCalc(){const c=+document.getElementById('pk-count').value||0,a=+document.getElementById('pk-amount').value||0;if(c&&a)document.getElementById('pk-per').value=Math.round(a/c*0.5);}
 function editPackage(mid,pid){
   const m=DB.members.find(x=>x.id===mid);const p=m.packages.find(x=>x.id===pid);if(!p)return;
   openModal(`
   <h3>${esc(m.name)} — 결제 수정</h3>
   <div class="note" style="margin-bottom:12px">횟수를 줄이면 총 횟수가 함께 줄어듭니다. 현재 사용 ${usedOf(m)}회이므로 총 횟수가 그보다 작아지면 만료로 표시됩니다.</div>
   <div class="frm">
-    <div><label>횟수 *</label><input id="pk-count" type="number" min="1" value="${p.count}" oninput="pkAmt()"></div>
-    <div><label>회당 가격</label><input id="pk-per" type="number" value="${p.perPrice||0}" oninput="pkAmt()"></div>
-    <div><label>결제 금액</label><input id="pk-amount" type="number" value="${p.amount||0}"></div>
+    <div><label>횟수 *</label><input id="pk-count" type="number" min="1" value="${p.count}" oninput="pkPerCalc()"></div>
+    <div><label>결제 금액</label><input id="pk-amount" type="number" value="${p.amount||0}" oninput="pkPerCalc()"></div>
+    <div class="full"><label>회당 가격 — 결제액÷횟수의 50% 자동 (수업료 정산용, 수정 가능)</label><input id="pk-per" type="number" value="${p.perPrice||0}"></div>
     <div><label>결제일 ${p.date?'':'(이관분 — 비워두면 매출 미집계)'}</label><input id="pk-date" type="date" value="${p.date||''}"></div>
   </div>
   <div class="modal-actions"><button class="btn ghost" onclick="openMember('${mid}')">뒤로</button>
