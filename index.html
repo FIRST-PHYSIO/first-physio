@@ -530,11 +530,21 @@ function monthStats(mk){
   return {done:done.length,noshow:noshow.length,cancel:cancel.length,pay,newMembers,renewPkg,noshowRate:ta?Math.round(noshow.length/ta*100):0};
 }
 const GXM_SEED=[{"name":"곽가영","phone":"","start":"2026-01-02","end":"2026-11-11","memo":"1개월(5% 성공)(신종수) · 8개월(크리스마스 이벤트+3주) · 신종수 PT 병행"},{"name":"김규진","phone":"010-7878-9888","start":"2026-01-06","end":"2026-07-28","memo":"PT+ (김강윤)"},{"name":"홍상아","phone":"010-4587-9245","start":"2026-01-16","end":"2026-10-21","memo":"8개월 +1"},{"name":"송현호","phone":"010-9879-8710","start":"2026-02-09","end":"2026-12-12","memo":"1+1이벤트 & 11/7 재결제(1+1) / 2/6 재결제(5+1)"},{"name":"임창연","phone":"010-6677-8463","start":"2026-03-03","end":"2026-09-05","memo":"5+1 이벤트"},{"name":"박지현","phone":"010-3626-8027","start":"2026-03-17","end":"2026-07-10","memo":"3+1주"},{"name":"강준석","phone":"010-2408-7985","start":"2026-05-06","end":"2026-08-06","memo":""},{"name":"황진영","phone":"010-7674-2692","start":"2026-05-20","end":"2026-08-27","memo":"재등록 3개월(1주 추가)"},{"name":"계현기","phone":"010-4775-5713","start":"2026-05-26","end":"2026-09-02","memo":"3개월 + 1주"},{"name":"이진경","phone":"","start":"2026-06-15","end":"2026-07-15","memo":"1개월(5% 성공) · 장동진 PT 병행"},{"name":"박인화","phone":"010-6455-0809","start":"2026-06-02","end":"2026-09-09","memo":"3개월 + 1주"},{"name":"윤희준","phone":"010-2112-9997","start":"2026-06-04","end":"2026-09-18","memo":"3개월 + 1주"},{"name":"김은영","phone":"010-7375-4400","start":"2026-06-09","end":"2026-10-16","memo":"3개월 + 1주"},{"name":"김혜민","phone":"010-5842-3840","start":"2026-06-23","end":"2026-07-30","memo":"1개월 + 1주"},{"name":"최정원","phone":"010-4143-1013","start":"2026-06-30","end":"2026-10-14","memo":"3개월"},{"name":"정은수","phone":"010-6686-0489","start":"2026-07-03","end":"2026-10-03","memo":"재등록/ 3개월 (주 3회)"},{"name":"류상열","phone":"010-9299-9532","start":"2026-07-01","end":"2026-12-08","memo":"종수 지인 (7/1 재결제) 5개월 + 1주"},{"name":"유재우","phone":"010-2543-8839","start":"2026-07-07","end":"2026-12-14","memo":"종수 지인 (7/7 재결제) 5개월 + 1주"},{"name":"김홍민","phone":"010-5021-2678","start":"2026-07-20","end":"2027-03-27","memo":"8개월 + 1주"}];
+const GXPAY_SEED=[
+ {name:'정은수',date:'2026-07-01',months:3,amount:549450},
+ {name:'류상열',date:'2026-07-01',months:5,amount:593400},
+ {name:'유재우',date:'2026-07-07',months:5,amount:593400},
+ {name:'김홍민',date:'2026-07-09',months:8,amount:972000}
+];
 function seedGxMembers(){
-  if((DB.gxMembers||[]).some(m=>(m.id||'').startsWith('gm_')))return;
-  if((DB.deleted||[]).some(d=>d.id==='gm_0'))return;
-  GXM_SEED.forEach((s,i)=>DB.gxMembers.push({id:'gm_'+i,...s,status:'active',pausedAt:'',pauseReason:'',updatedAt:1783600000000}));
-  saveLocal();
+  if(!((DB.gxMembers||[]).some(m=>(m.id||'').startsWith('gm_'))||(DB.deleted||[]).some(d=>d.id==='gm_0'))){
+    GXM_SEED.forEach((s,i)=>DB.gxMembers.push({id:'gm_'+i,...s,status:'active',pausedAt:'',pauseReason:'',updatedAt:1783600000000}));
+    saveLocal();
+  }
+  if(!((DB.gxPay||[]).some(p=>(p.id||'').startsWith('gp_'))||(DB.deleted||[]).some(d=>d.id==='gp_0'))){
+    GXPAY_SEED.forEach((s,i)=>DB.gxPay.push({id:'gp_'+i,...s,updatedAt:1783600000000}));
+    saveLocal();
+  }
 }
 function daysLeft(end){if(!end)return null;return Math.ceil((new Date(end+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000);}
 /* GX 회당 정산단가 = (전체 GX 결제액[부가세 제외] × 50%) ÷ 전체 판매 횟수 */
