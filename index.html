@@ -94,6 +94,10 @@ input:focus,select:focus,textarea:focus{outline:2px solid #b9ccff;border-color:v
 .chip.cancelled{background:#f0f2f6;color:#98a1b3;border:1px solid var(--line);text-decoration:line-through}
 .chip.late_cancel{background:var(--warn-soft);color:#8a5a08;border:1px solid #f3d9a8}
 .chip.over{outline:2px solid var(--bad)}
+.chip.gxchip{background:#1233a8;color:#fff;border:1px solid #1233a8}
+.wd-row{display:flex;gap:4px;flex-wrap:wrap}
+.wd-row label{display:flex;align-items:center;gap:3px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12.5px;font-weight:700;cursor:pointer}
+.wd-row label.on{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
 .overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:flex-start;justify-content:center;z-index:100;padding:36px 14px;overflow-y:auto}
 .overlay.show{display:flex}
 .modal{background:#fff;border-radius:14px;padding:22px;width:100%;max-width:600px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
@@ -193,9 +197,9 @@ const REAL_SEED={"members":[{"id":"m_0","name":"Tasya","trainer":"김택연","pr
 
 /* ================= 데이터 ================= */
 let DB=null;
-function fresh(){return {members:[],sessions:[],blocks:[],events:[],deleted:[],trainers:['홍웅표','신종수','김택연','정병건','장동진','김강윤'],trainerMeta:{},duty:JSON.parse(JSON.stringify(DEFAULT_DUTY)),noshowDeduct:true,metaTs:Date.now(),seq:1};}
+function fresh(){return {members:[],sessions:[],gx:[],blocks:[],events:[],deleted:[],trainers:['홍웅표','신종수','김택연','정병건','장동진','김강윤'],trainerMeta:{},duty:JSON.parse(JSON.stringify(DEFAULT_DUTY)),noshowDeduct:true,metaTs:Date.now(),seq:1};}
 function load(){
-  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));applyJulyPatch();dedupeSessions();return;}}catch(e){}
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));DB.gx=DB.gx||[];applyJulyPatch();dedupeSessions();return;}}catch(e){}
   DB=fresh();importSeed();applyJulyPatch();dedupeSessions();
 }
 /* 7월 시트 정밀 재추출 반영 패치(v2) — 시트가 7월의 기준.
@@ -362,7 +366,7 @@ function mergeDB(local,remote){
   const deleted=mergeCol(local.deleted||[],remote.deleted||[],[]).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,4000);
   const out={...local};
   out.deleted=deleted;
-  ['members','sessions','blocks','events'].forEach(k=>out[k]=mergeCol(local[k],remote[k],deleted));
+  ['members','sessions','gx','blocks','events'].forEach(k=>out[k]=mergeCol(local[k],remote[k],deleted));
   out.events.sort((a,b)=>b.ts-a.ts);out.events=out.events.slice(0,300);
   if((remote.metaTs||0)>(local.metaTs||0)){out.trainers=remote.trainers;out.noshowDeduct=remote.noshowDeduct;out.trainerMeta=remote.trainerMeta||{};out.duty=remote.duty||local.duty;out.metaTs=remote.metaTs;}
   out.seq=Math.max(local.seq||1,remote.seq||1);
@@ -517,8 +521,10 @@ function viewDash(){
     let settle=0;doneList.forEach(s=>{const m=DB.members.find(x=>x.id===s.memberId);if(m)settle+=perOf(m);});
     const ns=DB.sessions.filter(s=>s.trainer===t&&s.status==='noshow'&&monthKey(s.date)===mk).length;
     let pay=0;mems.forEach(m=>(m.packages||[]).forEach(p=>{if(monthKey(p.date)===mk)pay+=(+p.amount||0);}));
+    const gxList=(DB.gx||[]).filter(g=>g.trainer===t&&monthKey(g.date)===mk&&g.date<=today());
+    const gxN=gxList.length, gxPay=gxList.reduce((a,g)=>a+(+g.amount||0),0);
     const gold=mems.filter(m=>totalOf(m)>0&&remainOf(m)<=3).length;
-    return {t,mem:mems.length,doneS,ns,pay,gold,settle};
+    return {t,mem:mems.length,doneS,ns,pay,gold,settle,gxN,gxPay};
   });
   return `
   <div class="toolbar">
@@ -547,10 +553,10 @@ function viewDash(){
     </div>
   </div>
   <div class="card"><h2>트레이너별 성과 <span class="hint">${mk} · 주간/월간 리뷰 자료</span></h2>
-    <table><thead><tr><th>트레이너</th><th>담당 활성 회원</th><th>완료 세션</th><th>💰 수업료 정산</th><th>노쇼</th><th>담당 결제액</th><th>재등록 임박</th></tr></thead>
-    <tbody>${tRows.map(r=>`<tr><td><b style="color:${tMeta(r.t).color}">${esc(r.t)}</b></td><td class="mono">${r.mem}명</td><td class="mono">${r.doneS}회</td><td class="mono" style="font-weight:800">${fmtW(r.settle)}</td><td class="mono">${r.ns}</td><td class="mono">${fmtW(r.pay)}</td><td>${r.gold?`<span class="badge b-warn">${r.gold}명</span>`:'-'}</td></tr>`).join('')}
-    <tr style="background:#f8fafd"><td><b>합계</b></td><td class="mono">${tRows.reduce((a,r)=>a+r.mem,0)}명</td><td class="mono">${tRows.reduce((a,r)=>a+r.doneS,0)}회</td><td class="mono" style="font-weight:800">${fmtW(tRows.reduce((a,r)=>a+r.settle,0))}</td><td class="mono">${tRows.reduce((a,r)=>a+r.ns,0)}</td><td class="mono">${fmtW(tRows.reduce((a,r)=>a+r.pay,0))}</td><td></td></tr></tbody></table>
-    <div class="note" style="margin-top:10px">💰 수업료 정산 = 그 달 <b>완료 세션 수 × 각 회원의 회당 가격</b> (회당 가격 = 결제액÷횟수의 50%). 노쇼·취소는 정산 미포함. 회당 가격은 회원 카드 결제 이력에서 확인·수정.</div>
+    <table><thead><tr><th>트레이너</th><th>담당 활성 회원</th><th>완료 세션</th><th>💰 수업료 정산</th><th>GX 횟수</th><th>GX 매출</th><th>노쇼</th><th>담당 결제액</th><th>재등록 임박</th></tr></thead>
+    <tbody>${tRows.map(r=>`<tr><td><b style="color:${tMeta(r.t).color}">${esc(r.t)}</b></td><td class="mono">${r.mem}명</td><td class="mono">${r.doneS}회</td><td class="mono" style="font-weight:800">${fmtW(r.settle)}</td><td class="mono">${r.gxN}회</td><td class="mono">${r.gxPay?fmtW(r.gxPay):'-'}</td><td class="mono">${r.ns}</td><td class="mono">${fmtW(r.pay)}</td><td>${r.gold?`<span class="badge b-warn">${r.gold}명</span>`:'-'}</td></tr>`).join('')}
+    <tr style="background:#f8fafd"><td><b>합계</b></td><td class="mono">${tRows.reduce((a,r)=>a+r.mem,0)}명</td><td class="mono">${tRows.reduce((a,r)=>a+r.doneS,0)}회</td><td class="mono" style="font-weight:800">${fmtW(tRows.reduce((a,r)=>a+r.settle,0))}</td><td class="mono">${tRows.reduce((a,r)=>a+r.gxN,0)}회</td><td class="mono">${fmtW(tRows.reduce((a,r)=>a+r.gxPay,0))}</td><td class="mono">${tRows.reduce((a,r)=>a+r.ns,0)}</td><td class="mono">${fmtW(tRows.reduce((a,r)=>a+r.pay,0))}</td><td></td></tr></tbody></table>
+    <div class="note" style="margin-top:10px">💰 수업료 정산 = 그 달 <b>완료 세션 수 × 각 회원의 회당 가격</b> (회당 가격 = 결제액÷횟수의 50%). 노쇼·취소는 정산 미포함. GX 횟수는 지난 날짜 기준 집계이며 매출은 GX 칩에 입력한 금액의 합입니다.</div>
   </div>`;
 }
 function decideLate(sid,st){
@@ -571,6 +577,26 @@ function chipHTML(s,om,compact){
   const tm=tMeta(s.trainer);
   const tI=compact?`<span class="tt" style="color:${tm.color}">${esc(tm.initial)}</span>·`:'';
   return `<div class="chip ${s.status} ${over?'over':''}" style="border-left:3px solid ${tm.color}" onclick="event.stopPropagation();openSessionMenu('${s.id}')">${stTxt}${tI}${esc(m.name)} ${cnt}</div>`;
+}
+function gxChips(date,hour){
+  return DB.gx.filter(g=>g.date===date&&g.hour===hour).map(g=>{
+    const tm=tMeta(g.trainer);
+    return `<div class="chip gxchip" onclick="event.stopPropagation();openGxMenu('${g.id}')" style="border-left:3px solid ${tm.color}">GX ${esc(tm.initial)}${g.amount?' · '+Math.round(g.amount/10000)+'만':''}</div>`;
+  }).join('');
+}
+function openGxMenu(id){
+  const g=DB.gx.find(x=>x.id===id);if(!g)return;
+  openModal(`
+  <h3>그룹 운동(GX) — ${korDate(g.date)} ${g.hour}:00</h3>
+  <div class="frm">
+    <div><label>담당 코치</label><select id="gx-trainer">${DB.trainers.map(t=>`<option ${g.trainer===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+    <div><label>GX 매출 (원, 선택)</label><input id="gx-amount" type="number" value="${g.amount||''}" placeholder="예: 150000"></div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="if(confirm('이 GX 기록을 삭제할까요?')){DB.deleted.push({id:'${id}',ts:now()});DB.gx=DB.gx.filter(x=>x.id!=='${id}');save();closeModal();render();}">삭제</button>
+    <button class="btn ghost" onclick="closeModal()">닫기</button>
+    <button class="btn" onclick="(function(){const g2=DB.gx.find(x=>x.id==='${id}');g2.trainer=document.getElementById('gx-trainer').value;g2.amount=+document.getElementById('gx-amount').value||0;g2.updatedAt=now();save();closeModal();render();})()">저장</button>
+  </div>`);
 }
 function viewSched(){
   const days=[...Array(7)].map((_,i)=>addDays(SCHED.week,i));
@@ -601,7 +627,7 @@ function viewSched(){
     <tbody>${HOURS.map(h=>`<tr><td class="time">${h}:00</td>${days.map(d=>{
       const list=weekSessions.filter(s=>s.date===d&&s.hour===h).sort((a,b)=>a.trainer.localeCompare(b.trainer,'ko'));
       const blocked=tf&&isBlocked(tf,d,h);
-      return `<td class="${blocked?'blocked':''} ${d<today()?'past-col':''}" onclick="${blocked?'':'openAddSession(\''+d+'\','+h+',\''+esc(tf)+'\')'}">${list.map(s=>chipHTML(s,O(s),!tf)).join('')}</td>`;
+      return `<td class="${blocked?'blocked':''} ${d<today()?'past-col':''}" onclick="${blocked?'':'openAddSession(\''+d+'\','+h+',\''+esc(tf)+'\')'}">${list.map(s=>chipHTML(s,O(s),!tf)).join('')}${(!tf)?gxChips(d,h):DB.gx.filter(g=>g.date===d&&g.hour===h&&g.trainer===tf).map(g=>gxChips(d,h)).join('')}</td>`;
     }).join('')}</tr>`).join('')}</tbody></table></div>
     <div class="note" style="margin-top:10px">주간 전체 보기 — 칩 왼쪽 색상과 이니셜이 담당 코치입니다(예: <b>김강</b>·박익규). 날짜 아래는 당직(오전 9~16 / 오후 16~23). 특정 코치만 보려면 코치 필터를 선택하세요. 빗금 칸은 수업 불가 시간입니다.</div>`;
   }else{
@@ -613,7 +639,7 @@ function viewSched(){
     <tbody>${HOURS.map(h=>`<tr><td class="time">${h}:00</td>${DB.trainers.map(t=>{
       const list=daySessions.filter(s=>s.trainer===t&&s.hour===h);
       const blocked=isBlocked(t,date,h);
-      return `<td class="${blocked?'blocked':''}" onclick="${blocked?'':'openAddSession(\''+date+'\','+h+',\''+esc(t)+'\')'}">${list.map(s=>chipHTML(s,O(s),false)).join('')}</td>`;
+      return `<td class="${blocked?'blocked':''}" onclick="${blocked?'':'openAddSession(\''+date+'\','+h+',\''+esc(t)+'\')'}">${list.map(s=>chipHTML(s,O(s),false)).join('')}${DB.gx.filter(g=>g.date===date&&g.hour===h&&g.trainer===t).map(g=>`<div class="chip gxchip" onclick="event.stopPropagation();openGxMenu('${g.id}')">GX${g.amount?' · '+Math.round(g.amount/10000)+'만':''}</div>`).join('')}</td>`;
     }).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
   return controls+grid+`<div class="note" style="margin-top:10px">회차 번호는 <b>기록에서 자동 계산</b>됩니다 — 예약(파란 점선)=예상 회차, <b>완료(초록)·노쇼(빨강)</b>=확정 차감, <b>⚠ 주황=12시간 이내 취소(차감 판단 대기)</b>. 칩 클릭으로 상태 변경.</div>`;
@@ -638,20 +664,67 @@ function copyPrevWeek(){
 }
 function openAddSession(date,hour,trainer){
   trainer=(trainer&&DB.trainers.includes(trainer))?trainer:(SCHED.trainerFilter||DB.trainers[0]||'');
+  const wd0=(new Date(date+'T00:00:00').getDay()+6)%7;
+  const du=dutyOf(wd0);
   openModal(`
-  <h3>세션 추가 — ${korDate(date)}</h3>
+  <h3>일정 추가 — ${korDate(date)}</h3>
+  <div class="seg" style="margin-bottom:12px"><button id="tab-pt" class="on" onclick="setAddMode('pt')">PT 수업</button><button id="tab-gx" onclick="setAddMode('gx')">그룹 운동 (GX)</button></div>
+  <div id="pane-pt">
   <div class="frm">
     <div><label>담당 코치</label><select id="as-trainer" onchange="asFillMembers()">${DB.trainers.map(t=>`<option ${t===trainer?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
     <div style="display:flex;align-items:flex-end;padding-bottom:8px"><label style="display:flex;gap:6px;align-items:center;font-size:12px;cursor:pointer;margin:0;color:var(--sub)"><input type="checkbox" id="as-all" onchange="asFillMembers()" style="width:auto">다른 코치 회원도 표시</label></div>
     <div class="full"><label>회원 — 선택한 코치의 회원만 표시 (잔여횟수 자동 계산)</label>
       <select id="as-member" onchange="asPreview()"></select></div>
-    <div><label>날짜</label><input type="date" id="as-date" value="${date}"></div>
+    <div><label>시작 날짜</label><input type="date" id="as-date" value="${date}" onchange="asSyncWd()"></div>
     <div><label>시간</label><select id="as-hour">${HOURS.map(h=>`<option value="${h}" ${h===+hour?'selected':''}>${h}:00</option>`).join('')}</select></div>
-    <div class="full"><label>매주 반복 (복붙 대신)</label><select id="as-repeat"><option value="1">반복 없음</option><option value="2">2주</option><option value="4">4주</option><option value="8">8주</option><option value="12">12주</option></select></div>
+    <div class="full"><label>고정 요일 — 여러 개 선택 가능 (예: 월·목 고정)</label>
+      <div class="wd-row" id="as-wds">${DAYN.map((d,i)=>`<label class="${i===wd0?'on':''}"><input type="checkbox" class="as-wd" value="${i}" ${i===wd0?'checked':''} onchange="this.parentNode.classList.toggle('on',this.checked);asPreview()" style="width:auto">${d}</label>`).join('')}</div></div>
+    <div class="full"><label>반복 기간</label><select id="as-repeat" onchange="asPreview()">
+      <option value="1">이번 주만</option><option value="4">4주</option><option value="8">8주</option><option value="12">12주</option>
+      <option value="auto">잔여 횟수 소진까지 자동</option></select></div>
     <div class="full" id="as-preview"></div>
   </div>
-  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button><button class="btn" onclick="addSession()">예약 추가</button></div>`);
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button><button class="btn" onclick="addSession()">예약 추가</button></div>
+  </div>
+  <div id="pane-gx" style="display:none">
+  <div class="note" style="margin-bottom:10px">매일 저녁 그룹 운동 담당 코치를 지정합니다. 매출은 선택 입력 — 대시보드에서 코치별 GX 횟수·매출로 집계됩니다.</div>
+  <div class="frm">
+    <div><label>담당 코치 ${du.pm?`(오늘 오후 당직: ${esc(du.pm)})`:''}</label><select id="gxa-trainer">${DB.trainers.map(t=>`<option ${t===(du.pm||trainer)?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+    <div><label>날짜</label><input type="date" id="gxa-date" value="${date}"></div>
+    <div><label>시간</label><select id="gxa-hour">${HOURS.map(h2=>`<option value="${h2}" ${h2===(+hour||20)?'selected':''}>${h2}:00</option>`).join('')}</select></div>
+    <div><label>GX 매출 (원, 선택)</label><input id="gxa-amount" type="number" placeholder="예: 150000"></div>
+    <div class="full"><label>반복</label><select id="gxa-repeat"><option value="1">이 날만</option><option value="7">1주 (월~일 매일)</option><option value="28">4주 매일</option></select></div>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button><button class="btn" onclick="addGx()">GX 등록</button></div>
+  </div>`);
   asFillMembers();
+}
+function setAddMode(m2){
+  document.getElementById('pane-pt').style.display=m2==='pt'?'':'none';
+  document.getElementById('pane-gx').style.display=m2==='gx'?'':'none';
+  document.getElementById('tab-pt').classList.toggle('on',m2==='pt');
+  document.getElementById('tab-gx').classList.toggle('on',m2==='gx');
+}
+function asSyncWd(){
+  const d=document.getElementById('as-date').value;if(!d)return;
+  const wd=(new Date(d+'T00:00:00').getDay()+6)%7;
+  document.querySelectorAll('.as-wd').forEach(c=>{if(!c.checked&&+c.value===wd){c.checked=true;c.parentNode.classList.add('on');}});
+  asPreview();
+}
+function addGx(){
+  const t=document.getElementById('gxa-trainer').value;
+  const d0=document.getElementById('gxa-date').value;
+  const hh=+document.getElementById('gxa-hour').value;
+  const amount=+document.getElementById('gxa-amount').value||0;
+  const rep=+document.getElementById('gxa-repeat').value;
+  let added=0;
+  for(let i=0;i<rep;i++){
+    const d=addDays(d0,i);
+    if(DB.gx.some(g=>g.date===d&&g.hour===hh&&g.trainer===t))continue;
+    DB.gx.push({id:uid(),date:d,hour:hh,trainer:t,amount:i===0?amount:0,updatedAt:now()});added++;
+  }
+  save();closeModal();render();
+  if(rep>1)alert(added+'일의 GX가 등록되었습니다. 코치 변경은 각 GX 칩을 눌러 수정하세요.');
 }
 function asFillMembers(){
   const t=document.getElementById('as-trainer').value;
@@ -667,9 +740,12 @@ function asPreview(){
   const m=DB.members.find(x=>x.id===mid);
   const booked=memberSessions(mid).filter(s=>s.status==='booked').length;
   const rem=remainOf(m)-booked;
+  const wds=[...document.querySelectorAll('.as-wd:checked')].length||1;
+  const repV=document.getElementById('as-repeat').value;
+  const planned=repV==='auto'?Math.max(0,rem):Math.min(wds*(+repV),Math.max(0,rem));
   box.innerHTML=rem<=0
     ?`<div class="note bad">⚠ ${esc(m.name)}님 잔여 횟수 없음 (사용 ${usedOf(m)}/${totalOf(m)}, 예약 대기 ${booked}). 재등록 결제를 먼저 등록해 주세요.</div>`
-    :`<div class="note">예상 회차: <b>${usedOf(m)+booked+1} / ${totalOf(m)}</b> · 예약 후 잔여 ${rem-1}회 ${rem<=3?'<span class="badge b-warn">재등록 골든타임</span>':''}</div>`;
+    :`<div class="note">다음 회차: <b>${usedOf(m)+booked+1} / ${totalOf(m)}</b> · 예약 가능 잔여 ${rem}회 · 이번에 약 <b>${planned}건</b> 생성 ${rem<=3?'<span class="badge b-warn">재등록 골든타임</span>':''}</div>`;
 }
 function addSession(){
   const mid=document.getElementById('as-member').value;
@@ -678,20 +754,30 @@ function addSession(){
   const date=document.getElementById('as-date').value;
   const hour=+document.getElementById('as-hour').value;
   const trainer=document.getElementById('as-trainer').value;
-  const rep=+document.getElementById('as-repeat').value;
-  if(isBlocked(trainer,date,hour)&&!confirm(`${trainer} 코치의 수업 불가 시간입니다. 그래도 추가할까요?`))return;
+  const repV=document.getElementById('as-repeat').value;
+  const wds=[...document.querySelectorAll('.as-wd:checked')].map(c=>+c.value);
+  if(!wds.length){alert('요일을 하나 이상 선택해 주세요.');return;}
   const booked=memberSessions(mid).filter(s=>s.status==='booked').length;
   let can=remainOf(m)-booked;
   if(can<=0&&!confirm(`${m.name}님 잔여 횟수가 없습니다. 그래도 예약할까요? (재등록 예정)`))return;
-  let added=0;
-  for(let i=0;i<rep;i++){
-    const d=addDays(date,i*7);
-    if(DB.sessions.find(x=>x.date===d&&x.hour===hour&&x.memberId===mid))continue;
-    if(rep>1&&can-added<=0)break;
-    DB.sessions.push({id:uid(),memberId:mid,trainer,date:d,hour,status:'booked',updatedAt:now()});added++;
+  const auto=repV==='auto';
+  const weeks=auto?52:+repV;
+  const base=mondayOf(date);
+  let added=0,blockedN=0;
+  outer:
+  for(let w2=0;w2<weeks;w2++){
+    for(const wd of wds.sort((a,b)=>a-b)){
+      const d=addDays(base,w2*7+wd);
+      if(d<date)continue;
+      if(DB.sessions.find(x=>x.date===d&&x.hour===hour&&x.memberId===mid))continue;
+      if((auto||weeks>1||wds.length>1)&&can-added<=0)break outer;
+      if(isBlocked(trainer,d,hour)){blockedN++;continue;}
+      DB.sessions.push({id:uid(),memberId:mid,trainer,date:d,hour,status:'booked',updatedAt:now()});added++;
+    }
+    if(auto&&can-added<=0)break;
   }
   save();closeModal();render();
-  if(rep>1)alert(`${added}건 예약 완료 (잔여 한도 내 생성)`);
+  if(added>1||blockedN)alert(`${added}건 예약 완료 (잔여 한도 내 자동 생성${blockedN?', 수업 불가 시간 '+blockedN+'건 건너뜀':''}).`);
 }
 function openSessionMenu(sid){
   const s=DB.sessions.find(x=>x.id===sid);if(!s)return;
@@ -1243,7 +1329,7 @@ function renderBooking(){
       ${days.map(d=>{
         const slots=HOURS.map(h=>{
           const mine=DB.sessions.find(s=>s.date===d&&s.hour===h&&s.memberId===me.id&&['booked','done'].includes(s.status));
-          const taken=DB.sessions.find(s=>s.date===d&&s.hour===h&&s.trainer===coach&&['booked','done'].includes(s.status));
+          const taken=DB.sessions.find(s=>s.date===d&&s.hour===h&&s.trainer===coach&&['booked','done'].includes(s.status))||(DB.gx||[]).some(g=>g.date===d&&g.hour===h&&g.trainer===coach);
           const blocked=isBlocked(coach,d,h);
           const closed=hoursUntil(d,h)<BOOK_LEAD_HOURS;
           let cls='open',fn=`memberBook('${d}',${h})`;
@@ -1274,7 +1360,7 @@ async function memberBook(date,hour){
   await pullSync(true);
   const me=DB.members.find(m=>m.id===BK.memberId);const coach=BK.coach;
   if(hoursUntil(date,hour)<BOOK_LEAD_HOURS){alert('수업 시작 12시간 이내에는 예약할 수 없습니다. 코치에게 직접 연락해 주세요.');render();return;}
-  if(isBlocked(coach,date,hour)||DB.sessions.find(s=>s.date===date&&s.hour===hour&&s.trainer===coach&&['booked','done'].includes(s.status))){alert('방금 다른 예약이 들어왔거나 불가한 시간입니다. 다른 시간을 선택해 주세요.');render();return;}
+  if(isBlocked(coach,date,hour)||(DB.gx||[]).some(g=>g.date===date&&g.hour===hour&&g.trainer===coach)||DB.sessions.find(s=>s.date===date&&s.hour===hour&&s.trainer===coach&&['booked','done'].includes(s.status))){alert('방금 다른 예약이 들어왔거나 불가한 시간입니다. 다른 시간을 선택해 주세요.');render();return;}
   const myBooked=memberSessions(me.id).filter(s=>s.status==='booked').length;
   if(remainOf(me)-myBooked<=0){alert('잔여 횟수가 없습니다. 재등록 후 예약해 주세요.');return;}
   if(!confirm(`${korDate(date)} ${hour}:00 수업을 예약할까요?`))return;
