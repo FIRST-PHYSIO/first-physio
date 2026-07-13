@@ -197,10 +197,10 @@ const REAL_SEED={"members":[{"id":"m_0","name":"Tasya","trainer":"김택연","pr
 
 /* ================= 데이터 ================= */
 let DB=null;
-function fresh(){return {members:[],sessions:[],gx:[],gxPay:[],refunds:[],blocks:[],events:[],deleted:[],trainers:['홍웅표','신종수','김택연','정병건','장동진','김강윤'],trainerMeta:{},duty:JSON.parse(JSON.stringify(DEFAULT_DUTY)),noshowDeduct:true,metaTs:Date.now(),seq:1};}
+function fresh(){return {members:[],sessions:[],gx:[],gxPay:[],refunds:[],gxMembers:[],notes:[],blocks:[],events:[],deleted:[],trainers:['홍웅표','신종수','김택연','정병건','장동진','김강윤'],trainerMeta:{},duty:JSON.parse(JSON.stringify(DEFAULT_DUTY)),noshowDeduct:true,metaTs:Date.now(),seq:1};}
 function load(){
-  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));DB.gx=DB.gx||[];DB.gxPay=DB.gxPay||[];DB.refunds=DB.refunds||[];applyJulyPatch();dedupeSessions();return;}}catch(e){}
-  DB=fresh();importSeed();applyJulyPatch();dedupeSessions();
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));DB.gx=DB.gx||[];DB.gxPay=DB.gxPay||[];DB.refunds=DB.refunds||[];DB.gxMembers=DB.gxMembers||[];DB.notes=DB.notes||[];seedGxMembers();applyJulyPatch();dedupeSessions();return;}}catch(e){}
+  DB=fresh();importSeed();seedGxMembers();applyJulyPatch();dedupeSessions();
 }
 /* 7월 시트 정밀 재추출 반영 패치(v2) — 시트가 7월의 기준.
    결정적 ID(n2_/s2_)를 사용해 어느 기기에서 실행해도 동일한 결과 → 서버 병합 시 중복 없음.
@@ -334,6 +334,32 @@ function tMeta(t){
   return DB.trainerMeta[t];
 }
 function dutyOf(wd){return (DB.duty||{})[wd]||{am:'',pm:''};}
+function openDayNotes(date){
+  const get=t=>((DB.notes||[]).find(n=>n.date===date&&(n.trainer||'')===t)||{}).text||'';
+  openModal(`
+  <h3>📝 ${korDate(date)} 할 일 · 특이사항</h3>
+  <div class="frm">
+    <div class="full"><label>공통 (전체 공지)</label><input class="dn-in" data-t="" value="${esc(get(''))}" placeholder="예: 청소, 운동 영상, 회의"></div>
+    ${DB.trainers.map(t=>`<div class="full"><label style="color:${tMeta(t).color}">${esc(t)}</label><input class="dn-in" data-t="${esc(t)}" value="${esc(get(t))}" placeholder="개인 할 일·특이사항"></div>`).join('')}
+  </div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button>
+  <button class="btn" onclick="saveDayNotes('${date}')">저장</button></div>`);
+}
+function saveDayNotes(date){
+  document.querySelectorAll('.dn-in').forEach(inp=>{
+    const t=inp.dataset.t||'';const v=inp.value.trim();
+    const ex=(DB.notes||[]).find(n=>n.date===date&&(n.trainer||'')===t);
+    if(ex){if(v){ex.text=v;ex.updatedAt=now();}else{DB.deleted.push({id:ex.id,ts:now()});DB.notes=DB.notes.filter(n=>n.id!==ex.id);}}
+    else if(v)DB.notes.push({id:uid(),date,trainer:t,text:v,updatedAt:now()});
+  });
+  save();closeModal();render();
+}
+function noteBadge(date){
+  const list=(DB.notes||[]).filter(x=>x.date===date);
+  if(!list.length)return `<div style="font-size:10px;margin-top:2px;color:#b6bdcc">📝</div>`;
+  const c=list.find(x=>!(x.trainer||''));
+  return `<div style="font-size:10px;margin-top:2px;color:var(--brand);max-width:140px;margin-left:auto;margin-right:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${c?esc(c.text):list.length+'건'}</div>`;
+}
 function dutyBadge(wd){
   const du=dutyOf(wd);
   if(!du.am&&!du.pm)return '';
@@ -366,7 +392,7 @@ function mergeDB(local,remote){
   const deleted=mergeCol(local.deleted||[],remote.deleted||[],[]).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,4000);
   const out={...local};
   out.deleted=deleted;
-  ['members','sessions','gx','gxPay','refunds','blocks','events'].forEach(k=>out[k]=mergeCol(local[k],remote[k],deleted));
+  ['members','sessions','gx','gxPay','refunds','gxMembers','notes','blocks','events'].forEach(k=>out[k]=mergeCol(local[k],remote[k],deleted));
   out.events.sort((a,b)=>b.ts-a.ts);out.events=out.events.slice(0,300);
   if((remote.metaTs||0)>(local.metaTs||0)){out.trainers=remote.trainers;out.noshowDeduct=remote.noshowDeduct;out.trainerMeta=remote.trainerMeta||{};out.duty=remote.duty||local.duty;out.metaTs=remote.metaTs;}
   out.seq=Math.max(local.seq||1,remote.seq||1);
@@ -451,6 +477,7 @@ function renderShell(){
       <button data-v="sched" class="${VIEW==='sched'?'on':''}">스케줄</button>
       <button data-v="dash" class="${VIEW==='dash'?'on':''}">대시보드</button>
       <button data-v="members" class="${VIEW==='members'?'on':''}">회원 관리</button>
+      <button data-v="gxm" class="${VIEW==='gxm'?'on':''}">그룹 회원</button>
       <button data-v="renew" class="${VIEW==='renew'?'on':''}">재등록 관리</button>
       <button data-v="settings" class="${VIEW==='settings'?'on':''}">설정·도움말</button>
     </nav>
@@ -464,7 +491,7 @@ function renderShell(){
     if(e.target.dataset.v){VIEW=e.target.dataset.v;renderShell();}
   });
   document.getElementById('main').innerHTML=
-    VIEW==='dash'?viewDash():VIEW==='sched'?viewSched():VIEW==='members'?viewMembers():VIEW==='renew'?viewRenew():viewSettings();
+    VIEW==='dash'?viewDash():VIEW==='sched'?viewSched():VIEW==='members'?viewMembers():VIEW==='gxm'?viewGxMembers():VIEW==='renew'?viewRenew():viewSettings();
   updateSyncDot();
 }
 function render(){if(BOOKING_MODE)renderBooking();else renderShell();}
@@ -502,6 +529,14 @@ function monthStats(mk){
   const ta=done.length+noshow.length;
   return {done:done.length,noshow:noshow.length,cancel:cancel.length,pay,newMembers,renewPkg,noshowRate:ta?Math.round(noshow.length/ta*100):0};
 }
+const GXM_SEED=[{"name":"곽가영","phone":"","start":"2026-01-02","end":"2026-11-11","memo":"1개월(5% 성공)(신종수) · 8개월(크리스마스 이벤트+3주) · 신종수 PT 병행"},{"name":"김규진","phone":"010-7878-9888","start":"2026-01-06","end":"2026-07-28","memo":"PT+ (김강윤)"},{"name":"홍상아","phone":"010-4587-9245","start":"2026-01-16","end":"2026-10-21","memo":"8개월 +1"},{"name":"송현호","phone":"010-9879-8710","start":"2026-02-09","end":"2026-12-12","memo":"1+1이벤트 & 11/7 재결제(1+1) / 2/6 재결제(5+1)"},{"name":"임창연","phone":"010-6677-8463","start":"2026-03-03","end":"2026-09-05","memo":"5+1 이벤트"},{"name":"박지현","phone":"010-3626-8027","start":"2026-03-17","end":"2026-07-10","memo":"3+1주"},{"name":"강준석","phone":"010-2408-7985","start":"2026-05-06","end":"2026-08-06","memo":""},{"name":"황진영","phone":"010-7674-2692","start":"2026-05-20","end":"2026-08-27","memo":"재등록 3개월(1주 추가)"},{"name":"계현기","phone":"010-4775-5713","start":"2026-05-26","end":"2026-09-02","memo":"3개월 + 1주"},{"name":"이진경","phone":"","start":"2026-06-15","end":"2026-07-15","memo":"1개월(5% 성공) · 장동진 PT 병행"},{"name":"박인화","phone":"010-6455-0809","start":"2026-06-02","end":"2026-09-09","memo":"3개월 + 1주"},{"name":"윤희준","phone":"010-2112-9997","start":"2026-06-04","end":"2026-09-18","memo":"3개월 + 1주"},{"name":"김은영","phone":"010-7375-4400","start":"2026-06-09","end":"2026-10-16","memo":"3개월 + 1주"},{"name":"김혜민","phone":"010-5842-3840","start":"2026-06-23","end":"2026-07-30","memo":"1개월 + 1주"},{"name":"최정원","phone":"010-4143-1013","start":"2026-06-30","end":"2026-10-14","memo":"3개월"},{"name":"정은수","phone":"010-6686-0489","start":"2026-07-03","end":"2026-10-03","memo":"재등록/ 3개월 (주 3회)"},{"name":"류상열","phone":"010-9299-9532","start":"2026-07-01","end":"2026-12-08","memo":"종수 지인 (7/1 재결제) 5개월 + 1주"},{"name":"유재우","phone":"010-2543-8839","start":"2026-07-07","end":"2026-12-14","memo":"종수 지인 (7/7 재결제) 5개월 + 1주"},{"name":"김홍민","phone":"010-5021-2678","start":"2026-07-20","end":"2027-03-27","memo":"8개월 + 1주"}];
+function seedGxMembers(){
+  if((DB.gxMembers||[]).some(m=>(m.id||'').startsWith('gm_')))return;
+  if((DB.deleted||[]).some(d=>d.id==='gm_0'))return;
+  GXM_SEED.forEach((s,i)=>DB.gxMembers.push({id:'gm_'+i,...s,status:'active',pausedAt:'',pauseReason:'',updatedAt:1783600000000}));
+  saveLocal();
+}
+function daysLeft(end){if(!end)return null;return Math.ceil((new Date(end+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000);}
 /* GX 회당 정산단가 = (전체 GX 결제액[부가세 제외] × 50%) ÷ 전체 판매 횟수 */
 function gxRate(mk){
   const pool=(DB.gxPay||[]).filter(p=>monthKey(p.date)===mk).reduce((a,p)=>a+(+p.amount||0),0)*0.5;
@@ -680,7 +715,7 @@ function viewSched(){
     const tf=SCHED.trainerFilter;
     const weekSessions=DB.sessions.filter(s=>days.includes(s.date)&&(!tf||s.trainer===tf));
     grid=`<div class="sched-wrap"><table class="sched">
-    <thead><tr><th>시간</th>${days.map((d,i)=>`<th style="${d===today()?'background:var(--brand-soft)':''}">${korDate(d)}${dutyBadge(i)}</th>`).join('')}</tr></thead>
+    <thead><tr><th>시간</th>${days.map((d,i)=>`<th style="cursor:pointer;${d===today()?'background:var(--brand-soft)':''}" onclick="openDayNotes('${d}')" title="클릭: 할 일·특이사항 메모">${korDate(d)}${dutyBadge(i)}${noteBadge(d)}</th>`).join('')}</tr></thead>
     <tbody>${HOURS.map(h=>`<tr><td class="time">${h}:00</td>${days.map(d=>{
       const list=weekSessions.filter(s=>s.date===d&&s.hour===h).sort((a,b)=>a.trainer.localeCompare(b.trainer,'ko'));
       const blocked=tf&&isBlocked(tf,d,h);
@@ -690,9 +725,11 @@ function viewSched(){
   }else{
     const date=days[SCHED.dayIdx];
     const daySessions=DB.sessions.filter(s=>s.date===date);
+    const cnote=(DB.notes||[]).find(n=>n.date===date&&!(n.trainer||''));
     grid=`<div class="day-tabs" style="margin-bottom:10px">${days.map((d,i)=>`<button class="${i===SCHED.dayIdx?'on':''}" onclick="SCHED.dayIdx=${i};render()">${korDate(d)}</button>`).join('')}</div>
+    <div class="note" style="margin-bottom:10px">📢 <b>공통:</b> ${cnote?esc(cnote.text):'공지 없음'} <button class="btn small ghost" style="margin-left:8px" onclick="openDayNotes('${date}')">메모 편집</button> <span style="color:var(--sub);font-size:12px">· 개인 할 일은 각 코치 이름 아래 표시</span></div>
     <div class="sched-wrap"><table class="sched">
-    <thead><tr><th>시간</th>${DB.trainers.map(t=>{const du=dutyOf(SCHED.dayIdx);const marks=(du.am===t?' ☀':'')+(du.pm===t?' 🌙':'');return `<th style="box-shadow:inset 0 -3px 0 ${tMeta(t).color}">${esc(t)}<span title="당직">${marks}</span></th>`;}).join('')}</tr></thead>
+    <thead><tr><th>시간</th>${DB.trainers.map(t=>{const du=dutyOf(SCHED.dayIdx);const marks=(du.am===t?' ☀':'')+(du.pm===t?' 🌙':'');const pn=(DB.notes||[]).find(n=>n.date===date&&(n.trainer||'')===t);return `<th style="box-shadow:inset 0 -3px 0 ${tMeta(t).color};cursor:pointer" onclick="openDayNotes('${date}')">${esc(t)}<span title="당직">${marks}</span>${pn?`<div style="font-size:10px;font-weight:600;color:${tMeta(t).color};max-width:120px;margin:2px auto 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(pn.text)}</div>`:''}</th>`;}).join('')}</tr></thead>
     <tbody>${HOURS.map(h=>`<tr><td class="time">${h}:00</td>${DB.trainers.map(t=>{
       const list=daySessions.filter(s=>s.trainer===t&&s.hour===h);
       const blocked=isBlocked(t,date,h);
@@ -1198,6 +1235,153 @@ function deletePackage(mid,pid){
   save();openMember(mid);
 }
 
+/* ================= 그룹(GX) 회원 관리 ================= */
+let GXM_FILTER='active';
+function viewGxMembers(){
+  let list=(DB.gxMembers||[]).filter(m=>GXM_FILTER==='all'||(GXM_FILTER==='active'?m.status!=='ended':m.status===GXM_FILTER));
+  list.sort((a,b)=>((daysLeft(a.end)??9999)-(daysLeft(b.end)??9999)));
+  const soon=list.filter(m=>m.status==='active'&&daysLeft(m.end)!==null&&daysLeft(m.end)<=10&&daysLeft(m.end)>=0).length;
+  const over=list.filter(m=>m.status==='active'&&daysLeft(m.end)!==null&&daysLeft(m.end)<0).length;
+  return `
+  <div class="toolbar">
+    <select onchange="GXM_FILTER=this.value;render()">
+      <option value="active" ${GXM_FILTER==='active'?'selected':''}>활성+정지</option>
+      <option value="paused" ${GXM_FILTER==='paused'?'selected':''}>정지만</option>
+      <option value="ended" ${GXM_FILTER==='ended'?'selected':''}>종료</option>
+      <option value="all" ${GXM_FILTER==='all'?'selected':''}>전체</option>
+    </select>
+    ${soon?`<span class="badge b-warn">만료 10일 이내 ${soon}명</span>`:''}
+    ${over?`<span class="badge b-bad">만료 ${over}명</span>`:''}
+    <span class="sp"></span>
+    <button class="btn" onclick="openGxMember()">+ 그룹 회원 등록</button>
+  </div>
+  <div class="card">
+    <table><thead><tr><th>이름</th><th>연락처</th><th>시작일</th><th>종료일</th><th>남은 기간</th><th>상태</th><th>메모</th><th></th></tr></thead>
+    <tbody>${list.length?list.map(m=>{
+      const dl=daysLeft(m.end);
+      let dlBadge='-';
+      if(dl!==null){
+        if(m.status==='paused')dlBadge='<span class="badge b-gray">정지 중</span>';
+        else if(dl<0)dlBadge=`<span class="badge b-bad">만료 +${-dl}일</span>`;
+        else if(dl<=10)dlBadge=`<span class="badge b-warn">D-${dl} 🔔</span>`;
+        else dlBadge=`<span class="mono">D-${dl}</span>`;
+      }
+      return `<tr class="clickable" onclick="openGxMember('${m.id}')">
+        <td><b>${esc(m.name)}</b></td><td class="mono" style="font-size:12px">${esc(m.phone||'-')}</td>
+        <td class="mono">${m.start||'-'}</td><td class="mono">${m.end||'-'}</td>
+        <td>${dlBadge}</td>
+        <td>${m.status==='paused'?`<span class="badge b-gray">정지</span>`:m.status==='ended'?'<span class="badge b-gray">종료</span>':'<span class="badge b-ok">활성</span>'}</td>
+        <td style="font-size:12px;color:var(--sub);max-width:220px">${esc((m.status==='paused'?('['+(m.pauseReason||'정지')+'] '):'')+(m.memo||''))}</td>
+        <td style="white-space:nowrap;text-align:right" onclick="event.stopPropagation()">
+          <button class="btn small" onclick="openGxExtend('${m.id}')">연장</button>
+          ${m.status==='paused'
+            ?`<button class="btn small warn" onclick="resumeGxMember('${m.id}')">재개</button>`
+            :`<button class="btn small ghost" onclick="pauseGxMember('${m.id}')">정지</button>`}
+        </td></tr>`;}).join(''):`<tr><td colspan="8" class="empty">그룹 회원이 없습니다.</td></tr>`}</tbody></table>
+    <div class="note" style="margin-top:10px">정지하면 기간이 멈추고, [재개] 시 정지한 일수만큼 종료일이 자동으로 밀립니다. 연장 시 금액을 입력하면 GX 결제 원장에도 자동 기록됩니다.</div>
+  </div>`;
+}
+function openGxMember(id){
+  const m=id?DB.gxMembers.find(x=>x.id===id):null;
+  openModal(`
+  <h3>${m?esc(m.name)+' — 그룹 회원':'그룹 회원 등록'}</h3>
+  <div class="frm">
+    <div><label>이름 *</label><input id="gm-name" value="${m?esc(m.name):''}"></div>
+    <div><label>연락처</label><input id="gm-phone" value="${m?esc(m.phone||''):''}" placeholder="010-"></div>
+    <div><label>시작일</label><input type="date" id="gm-start" value="${m?m.start:today()}" ${m?'':'onchange="gmCalcEnd()"'}></div>
+    ${m?'':`
+    <div><label>등록 개월 *</label><select id="gm-months" onchange="gmCalcEnd()"><option value="1">1개월</option><option value="3" selected>3개월</option><option value="5">5개월</option><option value="8">8개월</option><option value="12">12개월</option></select></div>
+    <div><label>추가 주 (이벤트)</label><select id="gm-weeks" onchange="gmCalcEnd()"><option value="0">없음</option><option value="1">+1주</option><option value="2">+2주</option><option value="3">+3주</option></select></div>
+    <div><label>결제 금액 (부가세 제외) — GX 결제 원장 자동 기록</label><input type="number" id="gm-amount" placeholder="예: 500000"></div>`}
+    <div><label>종료일 ${m?'*':'(자동 계산, 수정 가능)'}</label><input type="date" id="gm-end" value="${m?m.end:''}"></div>
+    <div class="full"><label>메모 (등록 내용·이벤트 등)</label><input id="gm-memo" value="${m?esc(m.memo||''):''}"></div>
+    ${m&&m.status==='paused'?`<div class="full"><div class="note warn">정지 중 (${m.pausedAt}부터) — 사유: ${esc(m.pauseReason||'-')}</div></div>`:''}
+  </div>
+  <div class="modal-actions">
+    ${m?`<button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="if(confirm('이 그룹 회원을 삭제할까요?')){DB.deleted.push({id:'${m.id}',ts:now()});DB.gxMembers=DB.gxMembers.filter(x=>x.id!=='${m.id}');save();closeModal();render();}">삭제</button>`:''}
+    <button class="btn ghost" onclick="closeModal()">닫기</button>
+    <button class="btn" onclick="saveGxMember('${m?m.id:''}')">저장</button>
+  </div>`);
+  if(!m)gmCalcEnd();
+}
+function gmCalcEnd(){
+  const s=document.getElementById('gm-start').value;if(!s)return;
+  const mo=+((document.getElementById('gm-months')||{}).value||0);
+  const wk=+((document.getElementById('gm-weeks')||{}).value||0);
+  if(!mo)return;
+  const d=new Date(s+'T00:00:00');d.setMonth(d.getMonth()+mo);
+  document.getElementById('gm-end').value=addDays(ymd(d),wk*7);
+}
+function saveGxMember(id){
+  const name=document.getElementById('gm-name').value.trim();
+  const end=document.getElementById('gm-end').value;
+  if(!name||!end){alert('이름과 종료일을 입력해 주세요.');return;}
+  const start=document.getElementById('gm-start').value;
+  const base={name,phone:document.getElementById('gm-phone').value.trim(),start,end,memo:document.getElementById('gm-memo').value.trim(),updatedAt:now()};
+  if(id)Object.assign(DB.gxMembers.find(x=>x.id===id),base);
+  else{
+    DB.gxMembers.push({id:uid(),...base,status:'active',pausedAt:'',pauseReason:''});
+    const mo=+((document.getElementById('gm-months')||{}).value||0);
+    const amt=+((document.getElementById('gm-amount')||{}).value||0);
+    if(amt&&mo){
+      DB.gxPay.push({id:uid(),name,date:start,months:mo,amount:amt,updatedAt:now()});
+      addEvent('staff','GX 신규 결제: '+name+' '+mo+'개월 '+fmtW(amt));
+    }
+  }
+  save();closeModal();render();
+}
+function pauseGxMember(id){
+  const m=DB.gxMembers.find(x=>x.id===id);if(!m)return;
+  openModal(`
+  <h3>${esc(m.name)} — 정지</h3>
+  <div class="frm">
+    <div><label>정지 시작일</label><input type="date" id="gp-pdate" value="${today()}"></div>
+    <div class="full"><label>정지 사유 *</label><input id="gp-reason" placeholder="예: 해외 출장 2주, 부상"></div>
+  </div>
+  <div class="note" style="margin-top:8px">재개할 때 정지 일수만큼 종료일(${m.end})이 자동으로 연장됩니다.</div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button>
+  <button class="btn warn" onclick="(function(){const r=document.getElementById('gp-reason').value.trim();if(!r){alert('사유를 입력해 주세요.');return;}
+    const m2=DB.gxMembers.find(x=>x.id==='${id}');m2.status='paused';m2.pausedAt=document.getElementById('gp-pdate').value;m2.pauseReason=r;m2.updatedAt=now();
+    addEvent('staff','그룹 회원 정지: '+m2.name+' ('+r+')');save();closeModal();render();})()">정지 처리</button></div>`);
+}
+function resumeGxMember(id){
+  const m=DB.gxMembers.find(x=>x.id===id);if(!m||m.status!=='paused')return;
+  const days=Math.max(0,Math.ceil((new Date(today()+'T00:00:00')-new Date(m.pausedAt+'T00:00:00'))/86400000));
+  if(!confirm(m.name+'님을 오늘부터 재개할까요?\n정지 '+days+'일 → 종료일이 '+m.end+' → '+addDays(m.end,days)+'로 연장됩니다.'))return;
+  m.end=addDays(m.end,days);
+  m.memo=((m.memo||'')+' · 정지 '+m.pausedAt+'~'+today()+'('+(m.pauseReason||'')+')').trim();
+  m.status='active';m.pausedAt='';m.pauseReason='';m.updatedAt=now();
+  addEvent('staff','그룹 회원 재개: '+m.name+' (+'+days+'일 연장)');
+  save();render();
+}
+function openGxExtend(id){
+  const m=DB.gxMembers.find(x=>x.id===id);if(!m)return;
+  openModal(`
+  <h3>${esc(m.name)} — 기간 연장</h3>
+  <div class="note" style="margin-bottom:10px">현재 종료일: <b>${m.end}</b>${daysLeft(m.end)<0?' (만료됨 — 오늘부터 연장 계산)':''}</div>
+  <div class="frm">
+    <div><label>연장 개월</label><select id="ge-months"><option value="1">1개월</option><option value="3" selected>3개월</option><option value="5">5개월</option><option value="8">8개월</option><option value="12">12개월</option></select></div>
+    <div><label>추가 주 (이벤트)</label><select id="ge-weeks"><option value="0">없음</option><option value="1">+1주</option><option value="2">+2주</option><option value="3">+3주</option></select></div>
+    <div class="full"><label>결제 금액 (부가세 제외, 입력 시 GX 결제 원장에 자동 기록)</label><input type="number" id="ge-amount" placeholder="예: 500000"></div>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button>
+  <button class="btn" onclick="applyGxExtend('${id}')">연장 저장</button></div>`);
+}
+function applyGxExtend(id){
+  const m=DB.gxMembers.find(x=>x.id===id);if(!m)return;
+  const mo=+document.getElementById('ge-months').value||0;
+  const wk=+document.getElementById('ge-weeks').value||0;
+  const amt=+document.getElementById('ge-amount').value||0;
+  let base=(daysLeft(m.end)!==null&&daysLeft(m.end)<0)?today():m.end;
+  const d=new Date(base+'T00:00:00');d.setMonth(d.getMonth()+mo);
+  m.end=addDays(ymd(d),wk*7);
+  m.memo=((m.memo||'')+' · '+today()+' 연장 '+mo+'개월'+(wk?'+'+wk+'주':'')).trim();
+  m.status='active';m.updatedAt=now();
+  if(amt){DB.gxPay.push({id:uid(),name:m.name,date:today(),months:mo,amount:amt,updatedAt:now()});}
+  addEvent('staff','그룹 회원 연장: '+m.name+' '+mo+'개월'+(wk?'+'+wk+'주':'')+' → '+m.end);
+  save();closeModal();render();
+}
+
 /* ================= 재등록 관리 ================= */
 function viewRenew(){
   const golden=goldenList(),expired=expiredList();
@@ -1218,6 +1402,35 @@ function viewRenew(){
     </tr>`;
   }
   return `
+  ${(function(){
+    let months=[];{let d=new Date(today().slice(0,7)+'-01T00:00:00');for(let i=5;i>=0;i--){const t=new Date(d);t.setMonth(t.getMonth()-i);months.push(ymd(t).slice(0,7));}}
+    const rows=months.map(k=>{
+      let renew=0,newM=0;
+      DB.members.forEach(m=>(m.packages||[]).forEach((p,i)=>{if(monthKey(p.date)===k){if(i>0)renew++;else newM++;}}));
+      const churn=DB.members.filter(m=>m.status==='ended'&&monthKey(m.endedAt||'')===k).length;
+      const rate=(renew+churn)?Math.round(renew/(renew+churn)*100):null;
+      return {k,renew,newM,churn,rate};
+    });
+    return `<div class="card"><h2>재등록 통계 <span class="hint">최근 6개월 · 재등록률 = 재등록 ÷ (재등록+이탈)</span></h2>
+    <table><thead><tr><th>월</th>${rows.map(r=>`<th class="mono">${r.k.slice(5)}월</th>`).join('')}</tr></thead><tbody>
+    <tr><td><b>신규 등록</b></td>${rows.map(r=>`<td class="mono">${r.newM}</td>`).join('')}</tr>
+    <tr><td><b>재등록</b></td>${rows.map(r=>`<td class="mono" style="font-weight:800">${r.renew}</td>`).join('')}</tr>
+    <tr><td><b>이탈</b></td>${rows.map(r=>`<td class="mono" style="color:var(--bad)">${r.churn}</td>`).join('')}</tr>
+    <tr><td><b>재등록률</b></td>${rows.map(r=>`<td class="mono">${r.rate===null?'-':r.rate+'%'}</td>`).join('')}</tr>
+    </tbody></table>
+    <h2 style="margin-top:18px">코치별 재등록률 <span class="hint">최근 6개월 합계</span></h2>
+    <table><thead><tr><th>코치</th><th>이번 달 재등록</th><th>6개월 재등록</th><th>6개월 이탈</th><th>재등록률</th></tr></thead><tbody>
+    ${DB.trainers.map(t=>{
+      let renew6=0,renewM=0;
+      DB.members.filter(m=>m.trainer===t).forEach(m=>(m.packages||[]).forEach((p,i)=>{
+        if(i>0){const k=monthKey(p.date);if(months.includes(k))renew6++;if(k===months[5])renewM++;}
+      }));
+      const churn6=DB.members.filter(m=>m.trainer===t&&m.status==='ended'&&months.includes(monthKey(m.endedAt||''))).length;
+      const rate=(renew6+churn6)?Math.round(renew6/(renew6+churn6)*100):null;
+      return `<tr><td><b style="color:${tMeta(t).color}">${esc(t)}</b></td><td class="mono">${renewM}건</td><td class="mono">${renew6}건</td><td class="mono" style="color:var(--bad)">${churn6}</td><td>${rate===null?'<span style="color:var(--sub)">-</span>':`<b class="mono">${rate}%</b>`}</td></tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+  })()}
   <div class="note" style="margin-bottom:14px"><b>재등록 플레이북</b> — 잔여 3회 도달 시 자동으로 올라옵니다. ① 잔여 3회: 성과 리뷰 + 재등록 안내 → ② 잔여 1회: 결제 확정 → ③ 만료 후 7일 내 미등록 시 이탈 처리·사유 기록. <b>시스템이 타이밍을 알려주는 구조</b>입니다.</div>
   <div class="card"><h2>🔔 재등록 골든타임 <span class="hint">잔여 3회 이하 — 자동 추출</span></h2>
     ${golden.length||expired.length?`<table><thead><tr><th>회원</th><th>담당</th><th>진행</th><th>잔여</th><th>가능 시간</th><th>팔로업</th><th>메모</th><th></th></tr></thead>
@@ -1233,7 +1446,7 @@ function viewRenew(){
     </div>
   </div>`;
 }
-function setFollow(mid,k,v){const m=DB.members.find(x=>x.id===mid);m.followUp=m.followUp||{status:'대기',memo:''};m.followUp[k]=v;m.updatedAt=now();if(k==='status'&&v==='이탈')m.status='ended';save();render();}
+function setFollow(mid,k,v){const m=DB.members.find(x=>x.id===mid);m.followUp=m.followUp||{status:'대기',memo:''};m.followUp[k]=v;m.updatedAt=now();if(k==='status'&&v==='이탈'){m.status='ended';m.endedAt=today();}save();render();}
 
 /* ================= 설정 · 도움말 ================= */
 function viewSettings(){
