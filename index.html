@@ -503,11 +503,10 @@ function monthStats(mk){
   return {done:done.length,noshow:noshow.length,cancel:cancel.length,pay,newMembers,renewPkg,noshowRate:ta?Math.round(noshow.length/ta*100):0};
 }
 /* GX 회당 정산단가 = (전체 GX 결제액[부가세 제외] × 50%) ÷ 전체 판매 횟수 */
-function gxRate(){
-  const pays=DB.gxPay||[];
-  const pool=pays.reduce((a,p)=>a+(+p.amount||0)*0.5,0);
-  const cnt=pays.reduce((a,p)=>a+(+p.count||0),0);
-  return cnt?Math.round(pool/cnt):0;
+function gxRate(mk){
+  const pool=(DB.gxPay||[]).filter(p=>monthKey(p.date)===mk).reduce((a,p)=>a+(+p.amount||0),0)*0.5;
+  const runs=(DB.gx||[]).filter(g=>monthKey(g.date)===mk&&g.date<=today()).length;
+  return runs?Math.round(pool/runs):0;
 }
 function gxMonthRev(mk){return (DB.gxPay||[]).filter(p=>monthKey(p.date)===mk).reduce((a,p)=>a+(+p.amount||0),0);}
 function refundMonth(mk){return (DB.refunds||[]).filter(r=>monthKey(r.date)===mk);}
@@ -517,14 +516,14 @@ function openGxPayAdd(){
   <div class="frm">
     <div><label>회원 이름 *</label><input id="gp-name"></div>
     <div><label>결제일</label><input type="date" id="gp-date" value="${today()}"></div>
-    <div><label>등록 횟수 *</label><input type="number" id="gp-count" min="1" placeholder="예: 10"></div>
+    <div><label>등록 개월 수 *</label><select id="gp-months"><option value="1">1개월</option><option value="3">3개월</option><option value="5">5개월</option><option value="8">8개월</option><option value="12">12개월</option></select></div>
     <div><label>결제 금액 (부가세 제외) *</label><input type="number" id="gp-amount" placeholder="예: 500000"></div>
   </div>
   <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button>
-  <button class="btn" onclick="(function(){const n=document.getElementById('gp-name').value.trim(),c=+document.getElementById('gp-count').value||0,a=+document.getElementById('gp-amount').value||0;
-    if(!n||!c||!a){alert('이름·횟수·금액을 입력해 주세요.');return;}
-    DB.gxPay.push({id:uid(),name:n,date:document.getElementById('gp-date').value,count:c,amount:a,updatedAt:now()});
-    addEvent('staff','GX 결제: '+n+' '+c+'회 '+fmtW(a));save();closeModal();render();})()">저장</button></div>`);
+  <button class="btn" onclick="(function(){const n=document.getElementById('gp-name').value.trim(),c=+document.getElementById('gp-months').value||0,a=+document.getElementById('gp-amount').value||0;
+    if(!n||!c||!a){alert('이름·개월·금액을 입력해 주세요.');return;}
+    DB.gxPay.push({id:uid(),name:n,date:document.getElementById('gp-date').value,months:c,amount:a,updatedAt:now()});
+    addEvent('staff','GX 결제: '+n+' '+c+'개월 '+fmtW(a));save();closeModal();render();})()">저장</button></div>`);
 }
 function delGxPay(id){if(!confirm('이 GX 결제 기록을 삭제할까요?'))return;DB.deleted.push({id,ts:now()});DB.gxPay=DB.gxPay.filter(x=>x.id!==id);save();render();}
 function openRefundAdd(){
@@ -565,7 +564,7 @@ function viewDash(){
     const ns=DB.sessions.filter(s=>s.trainer===t&&s.status==='noshow'&&monthKey(s.date)===mk).length;
     let pay=0;mems.forEach(m=>(m.packages||[]).forEach(p=>{if(monthKey(p.date)===mk)pay+=(+p.amount||0);}));
     const gxN=(DB.gx||[]).filter(g=>g.trainer===t&&monthKey(g.date)===mk&&g.date<=today()).length;
-    const gxPay=gxN*gxRate();
+    const gxPay=gxN*gxRate(mk);
     const gold=mems.filter(m=>totalOf(m)>0&&remainOf(m)<=3).length;
     return {t,mem:mems.length,doneS,ns,pay,gold,settle,gxN,gxPay};
   });
@@ -601,13 +600,13 @@ function viewDash(){
     <table><thead><tr><th>트레이너</th><th>담당 활성 회원</th><th>완료 세션</th><th>💰 수업료 정산</th><th>GX 횟수</th><th>GX 정산</th><th>노쇼</th><th>담당 결제액</th><th>재등록 임박</th></tr></thead>
     <tbody>${tRows.map(r=>`<tr><td><b style="color:${tMeta(r.t).color}">${esc(r.t)}</b></td><td class="mono">${r.mem}명</td><td class="mono">${r.doneS}회</td><td class="mono" style="font-weight:800">${fmtW(r.settle)}</td><td class="mono">${r.gxN}회</td><td class="mono">${r.gxPay?fmtW(r.gxPay):'-'}</td><td class="mono">${r.ns}</td><td class="mono">${fmtW(r.pay)}</td><td>${r.gold?`<span class="badge b-warn">${r.gold}명</span>`:'-'}</td></tr>`).join('')}
     <tr style="background:#f8fafd"><td><b>합계</b></td><td class="mono">${tRows.reduce((a,r)=>a+r.mem,0)}명</td><td class="mono">${tRows.reduce((a,r)=>a+r.doneS,0)}회</td><td class="mono" style="font-weight:800">${fmtW(tRows.reduce((a,r)=>a+r.settle,0))}</td><td class="mono">${tRows.reduce((a,r)=>a+r.gxN,0)}회</td><td class="mono">${fmtW(tRows.reduce((a,r)=>a+r.gxPay,0))}</td><td class="mono">${tRows.reduce((a,r)=>a+r.ns,0)}</td><td class="mono">${fmtW(tRows.reduce((a,r)=>a+r.pay,0))}</td><td></td></tr></tbody></table>
-    <div class="note" style="margin-top:10px">💰 수업료 정산 = 그 달 <b>완료 세션 수 × 각 회원의 회당 가격</b> (회당 가격 = 결제액÷횟수의 50%). 노쇼·취소는 정산 미포함. GX 정산 = 진행 횟수 × 회당 단가. 회당 단가 = (GX 총 결제액[부가세 제외] × 50%, 나머지 50%는 센터 관리비) ÷ 총 판매 횟수 — 현재 <b>${fmtW(gxRate())}/회</b>.</div>
+    <div class="note" style="margin-top:10px">💰 수업료 정산 = 그 달 <b>완료 세션 수 × 각 회원의 회당 가격</b> (회당 가격 = 결제액÷횟수의 50%). 노쇼·취소는 정산 미포함. GX 정산 = 그 코치의 진행 횟수 × 회당 단가. 회당 단가 = (그 달 GX 결제액[부가세 제외] × 50%, 나머지 50%는 센터 관리비) ÷ 그 달 전체 진행 횟수 — ${mk} 단가 <b>${fmtW(gxRate(mk))}/회</b>. 코치 정산 합계는 항상 그 달 GX 결제액의 50%와 일치합니다.</div>
   </div>
   <div class="two-col">
     <div class="card"><h2>GX 결제 원장 <span class="hint">누가 · 언제 · 몇 회 · 얼마(부가세 제외)</span>
       <button class="btn small" style="margin-left:auto" onclick="openGxPayAdd()">+ GX 결제</button></h2>
-      ${(DB.gxPay||[]).length?`<table><thead><tr><th>결제일</th><th>이름</th><th>횟수</th><th>금액</th><th></th></tr></thead><tbody>
-      ${DB.gxPay.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,10).map(p=>`<tr><td>${p.date||'-'}</td><td><b>${esc(p.name)}</b></td><td class="mono">${p.count}회</td><td class="mono">${fmtW(p.amount)}</td><td style="text-align:right"><button class="btn small ghost" style="color:var(--bad)" onclick="delGxPay('${p.id}')">삭제</button></td></tr>`).join('')}</tbody></table>
+      ${(DB.gxPay||[]).length?`<table><thead><tr><th>결제일</th><th>이름</th><th>개월</th><th>금액</th><th></th></tr></thead><tbody>
+      ${DB.gxPay.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,10).map(p=>`<tr><td>${p.date||'-'}</td><td><b>${esc(p.name)}</b></td><td class="mono">${p.months||p.count||'-'}개월</td><td class="mono">${fmtW(p.amount)}</td><td style="text-align:right"><button class="btn small ghost" style="color:var(--bad)" onclick="delGxPay('${p.id}')">삭제</button></td></tr>`).join('')}</tbody></table>
       ${DB.gxPay.length>10?`<div style="font-size:12px;color:var(--sub);margin-top:6px">외 ${DB.gxPay.length-10}건 (누적 ${DB.gxPay.length}건 · 총 ${fmtW(DB.gxPay.reduce((a,p)=>a+(+p.amount||0),0))})</div>`:''}`:'<div class="empty">GX 결제 기록이 없습니다. [+ GX 결제]로 추가하세요.</div>'}
     </div>
     <div class="card"><h2>환불 기록 <span class="hint">PT · GX</span>
@@ -747,7 +746,7 @@ function openAddSession(date,hour,trainer){
   <div id="pane-gx" style="display:none">
   <div class="note" style="margin-bottom:10px">매일 저녁 그룹 운동 담당 코치를 지정합니다. GX 결제(매출)는 대시보드의 GX 결제 원장에 기록하고, 코치 정산은 진행 횟수 × 회당 단가로 자동 계산됩니다.</div>
   <div class="frm">
-    <div><label>담당 코치 ${du.pm?`(오늘 오후 당직: ${esc(du.pm)})`:''}</label><select id="gxa-trainer">${DB.trainers.map(t=>`<option ${t===(du.pm||trainer)?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+    <div><label>담당 코치 ${SCHED.trainerFilter?'(코치 필터 적용)':du.pm?`(이날 오후 당직: ${esc(du.pm)})`:''}</label><select id="gxa-trainer">${(SCHED.trainerFilter?[SCHED.trainerFilter]:DB.trainers).map(t=>`<option ${t===(SCHED.trainerFilter||du.pm||trainer)?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
     <div><label>날짜</label><input type="date" id="gxa-date" value="${date}"></div>
     <div><label>시간</label><select id="gxa-hour">${HOURS.map(h2=>`<option value="${h2}" ${h2===(+hour||20)?'selected':''}>${h2}:00</option>`).join('')}</select></div>
     <div class="full"><label>반복</label><select id="gxa-repeat"><option value="1">이 날만</option><option value="7">1주 (월~일 매일)</option><option value="28">4주 매일</option></select></div>
