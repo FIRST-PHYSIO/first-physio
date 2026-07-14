@@ -1063,6 +1063,11 @@ function genReminder(){
   document.getElementById('rm-out').value=lines.length?lines.join('\n'):'해당 날짜에 예약된 수업이 없습니다.';
 }
 
+function copyMemberLink(mid){
+  if(location.protocol==='file:'){alert('아직 웹에 올리지 않아 링크가 작동하지 않습니다. 호스팅 주소에서 복사해 주세요.');return;}
+  const url=location.href.split('?')[0]+'?book=1&m='+mid;
+  navigator.clipboard.writeText(url).then(()=>alert('개인 예약 링크가 복사되었습니다.\n이 링크는 본인 화면으로 바로 열리며, 다른 회원 이름은 보이지 않습니다.'));
+}
 /* ---- 회원 예약 링크 ---- */
 function openBookLink(){
   const base=location.href.split('?')[0];
@@ -1070,7 +1075,8 @@ function openBookLink(){
   openModal(`
   <h3>🔗 회원 예약 링크</h3>
   ${isFile?'<div class="note bad" style="margin-bottom:10px"><b>아직 웹에 올리지 않아 이 링크는 카톡에서 작동하지 않습니다.</b> 설정 탭의 "웹에 올리기" 2단계(GitHub Pages 또는 Netlify)를 먼저 완료하면, 생기는 https 주소 기준으로 아래 링크가 자동으로 바뀌고 카톡에서 바로 눌러 접속됩니다.</div>':''}
-  <div class="note" style="margin-bottom:10px">회원이 링크를 눌러 <b>직접 예약·취소</b>합니다. 담당 코치의 빈 시간만 보이고 12시간 규칙이 자동 적용됩니다. 서버(Supabase) 연결 필수.</div>
+  <div class="note ok" style="margin-bottom:10px"><b>추천: 개인 전용 링크</b> — [회원 관리 → 회원 카드 → 🔗 개인 예약 링크 복사]로 회원마다 전용 링크를 카톡으로 보내주세요. 본인 화면으로 바로 열리고 <b>다른 회원 이름이 전혀 노출되지 않습니다.</b></div>
+  <div class="note" style="margin-bottom:10px">아래 코치 공용 링크는 성함을 직접 입력해 본인 확인하는 방식입니다 (이름 목록 비노출). 예약된 시간은 모든 회원에게 '마감', 수업 불가 시간은 '불가'로 동일하게 표시됩니다.</div>
   <table><tbody>
     ${DB.trainers.map(t=>`<tr><td><b>${esc(t)}</b> 코치 전용</td><td style="font-size:11.5px;color:var(--sub);word-break:break-all">${esc(base)}?book=1&coach=${encodeURIComponent(t)}</td>
     <td><button class="btn small ghost" onclick="navigator.clipboard.writeText('${base}?book=1&coach=${encodeURIComponent(t)}').then(()=>alert('복사됨'))">복사</button></td></tr>`).join('')}
@@ -1123,7 +1129,8 @@ function openMember(mid){
   const om=m?ordinalMap(m.id):{};
   openModal(`
   <h3>${m?esc(m.name)+' — 회원 정보':'신규 회원 등록'}</h3>
-  ${m?`<div class="note" style="margin-bottom:12px">진행 <b>${usedOf(m)} / ${totalOf(m)}</b> (잔여 ${remainOf(m)}회) = 이관분 ${m.carryUsed||0} + 시스템 기록 ${memberSessions(m.id).filter(countable).length}. <b>기록으로만 변동됩니다.</b></div>`:''}
+  ${m?`<div class="note" style="margin-bottom:12px">진행 <b>${usedOf(m)} / ${totalOf(m)}</b> (잔여 ${remainOf(m)}회) = 이관분 ${m.carryUsed||0} + 시스템 기록 ${memberSessions(m.id).filter(countable).length}. <b>기록으로만 변동됩니다.</b>
+  <button class="btn small ghost" style="margin-left:8px" onclick="copyMemberLink('${m.id}')">🔗 개인 예약 링크 복사</button></div>`:''}
   <div class="frm">
     <div><label>이름 *</label><input id="mf-name" value="${m?esc(m.name):''}"></div>
     <div><label>연락처</label><input id="mf-phone" value="${m?esc(m.phone||''):''}" placeholder="010-"></div>
@@ -1571,22 +1578,21 @@ function importJSON(inp){
 }
 
 /* ================= 회원 예약 모드 ================= */
-let BK={coach:PARAMS.get('coach')||'',memberId:'',weeks:2};
+let BK={coach:PARAMS.get('coach')||'',memberId:PARAMS.get('m')||'',weeks:2};
 function renderBooking(){
   const app=document.getElementById('app');
   const cfg=getCfg();
-  const coach=BK.coach&&DB.trainers.includes(BK.coach)?BK.coach:'';
-  const mems=coach?DB.members.filter(m=>m.status==='active'&&m.trainer===coach).sort((a,b)=>a.name.localeCompare(b.name,'ko')):[];
-  const me=DB.members.find(m=>m.id===BK.memberId);
+  const me=DB.members.find(m=>m.id===BK.memberId&&m.status==='active');
+  const coach=me?me.trainer:(BK.coach&&DB.trainers.includes(BK.coach)?BK.coach:'');
   let body='';
   if(!cfg){
     body=`<div class="note warn">아직 서버에 연결되지 않은 파일입니다. 센터에 문의해 주세요.</div>`;
   }else if(!coach){
     body=`<div class="card"><h2>담당 코치 선택</h2><div class="pill-row">${DB.trainers.map(t=>`<button class="btn ghost" onclick="BK.coach='${esc(t)}';BK.memberId='';render()">${esc(t)} 코치</button>`).join('')}</div></div>`;
   }else if(!me){
-    body=`<div class="card"><h2>${esc(coach)} 코치 — 회원 선택</h2>
-      <select style="width:100%" onchange="BK.memberId=this.value;render()"><option value="">내 이름 선택…</option>
-      ${mems.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>
+    body=`<div class="card"><h2>${esc(coach)} 코치 — 본인 확인</h2>
+      <div class="note" style="margin-bottom:10px">개인정보 보호를 위해 성함을 직접 입력해 주세요. (등록된 이름과 정확히 일치해야 합니다)</div>
+      <div style="display:flex;gap:8px"><input id="bk-name" placeholder="성함 입력" style="flex:1" onkeydown="if(event.key==='Enter')bkConfirmName()"><button class="btn" onclick="bkConfirmName()">확인</button></div>
       ${PARAMS.get('coach')?'':`<div style="margin-top:8px"><button class="btn ghost small" onclick="BK.coach='';render()">← 코치 다시 선택</button></div>`}
     </div>`;
   }else{
@@ -1610,29 +1616,37 @@ function renderBooking(){
           const taken=DB.sessions.find(s=>s.date===d&&s.hour===h&&s.trainer===coach&&['booked','done'].includes(s.status))||(DB.gx||[]).some(g=>g.date===d&&g.hour===h&&g.trainer===coach);
           const blocked=isBlocked(coach,d,h);
           const closed=hoursUntil(d,h)<BOOK_LEAD_HOURS;
-          let cls='open',fn=`memberBook('${d}',${h})`;
-          if(mine){cls='mine';fn=`memberCancel('${mine.id}')`;}
-          else if(blocked){cls='blockedS';fn='';}
-          else if(taken){cls='taken';fn='';}
+          let cls='open',fn=`memberBook('${d}',${h})`,txt=h+':00';
+          if(mine){cls='mine';fn=`memberCancel('${mine.id}')`;txt=h+'시 ✓';}
+          else if(blocked){cls='blockedS';fn='';txt='불가';}
+          else if(taken){cls='taken';fn='';txt='마감';}
           else if(closed){cls='closed';fn='';}
-          return `<button class="slot ${cls}" ${fn?`onclick="${fn}"`:'disabled'}>${h}:00</button>`;
+          return `<button class="slot ${cls}" ${fn?`onclick="${fn}"`:'disabled'} title="${cls==='taken'?'이미 예약된 시간':cls==='blockedS'?'코치 수업 불가 시간':cls==='closed'?'12시간 이내라 예약 불가':cls==='mine'?'내 예약 — 누르면 취소':'예약 가능'}">${txt}</button>`;
         }).join('');
         return `<div class="slot-day"><div class="d">${korDate(d)}${d===today()?' · 오늘':''}</div><div class="slots">${slots}</div></div>`;
       }).join('')}
       <button class="btn ghost" style="width:100%;margin-top:6px" onclick="BK.weeks+=1;render()">더 보기 (+1주)</button>
     </div>
     <div class="note">
+      <b>표시 안내</b> — 시간 버튼: 예약 가능 · <b>✓</b> 내 예약(누르면 취소) · <b>마감</b> 다른 회원 예약 · <b>불가</b> 코치 수업 불가 · 흐림: 12시간 이내<br><br>
       <b>예약·취소 안내</b><br>
       · 수업 시작 <b>12시간 전까지</b> 자유롭게 예약·취소하실 수 있습니다.<br>
       · 수업 시작 12시간 이내 취소는 <b>횟수가 차감될 수 있습니다</b> (부득이한 사정은 코치에게 연락 주시면 확인 후 조정해 드립니다).<br>
       · 수업 시작 12시간 이내에는 새 예약이 불가합니다. 급한 경우 코치에게 직접 연락해 주세요.
     </div>
-    <div style="margin-top:10px;text-align:center"><button class="btn ghost small" onclick="BK.memberId='';render()">다른 회원 선택</button></div>`;
+    ${PARAMS.get('m')?'':`<div style="margin-top:10px;text-align:center"><button class="btn ghost small" onclick="BK.memberId='';render()">다른 이름으로 확인</button></div>`}`;
   }
   app.innerHTML=`<div class="book-wrap">
     <div class="book-hd"><h1>FIRST <span>PHYSIO</span> 수업 예약</h1>
     <div style="font-size:12px;color:var(--sub);margin-top:4px" id="bk-sync">${cfg?'실시간 예약 시스템':'서버 미연결'}</div></div>
     ${body}</div>`;
+}
+function bkConfirmName(){
+  const v=(document.getElementById('bk-name').value||'').trim();
+  if(!v)return;
+  const cand=DB.members.filter(m=>m.status==='active'&&m.trainer===BK.coach&&m.name===v);
+  if(cand.length===1){BK.memberId=cand[0].id;render();}
+  else alert('등록된 이름을 찾을 수 없습니다. 담당 코치에게 개인 예약 링크를 요청해 주세요.');
 }
 async function memberBook(date,hour){
   await pullSync(true);
