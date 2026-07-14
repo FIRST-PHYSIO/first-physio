@@ -199,7 +199,7 @@ const REAL_SEED={"members":[{"id":"m_0","name":"Tasya","trainer":"김택연","pr
 let DB=null;
 function fresh(){return {members:[],sessions:[],gx:[],gxPay:[],refunds:[],gxMembers:[],notes:[],blocks:[],events:[],deleted:[],trainers:['홍웅표','신종수','김택연','정병건','장동진','김강윤'],trainerMeta:{},duty:JSON.parse(JSON.stringify(DEFAULT_DUTY)),noshowDeduct:true,metaTs:Date.now(),seq:1};}
 function load(){
-  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));DB.gx=DB.gx||[];DB.gxPay=DB.gxPay||[];DB.refunds=DB.refunds||[];DB.gxMembers=DB.gxMembers||[];DB.notes=DB.notes||[];seedGxMembers();applyJulyPatch();dedupeSessions();return;}}catch(e){}
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));DB.gx=DB.gx||[];DB.gxPay=DB.gxPay||[];DB.refunds=DB.refunds||[];DB.gxMembers=DB.gxMembers||[];DB.notes=DB.notes||[];seedGxMembers();applyJulyPatch();dedupeSessions();autoCompletePast();return;}}catch(e){}
   DB=fresh();importSeed();seedGxMembers();applyJulyPatch();dedupeSessions();
 }
 /* 7월 시트 정밀 재추출 반영 패치(v2) — 시트가 7월의 기준.
@@ -262,6 +262,18 @@ function applyJulyPatch(){
 }
 /* 같은 회원·같은 날짜·같은 시간 세션은 1건만 유효 (수업 1회=1시간 원칙).
    기기 간 병합·이중 입력으로 중복이 생겨도 실행/동기화 때마다 자동 정리되고 서버에도 전파된다. */
+/* 지난 시간의 예약은 자동으로 완료 처리 — 취소·노쇼만 직원이 직접 변경 */
+function autoCompletePast(){
+  const nowD=new Date();let n=0;
+  DB.sessions.forEach(s=>{
+    if(s.status!=='booked')return;
+    const end=new Date(s.date+'T'+String(s.hour).padStart(2,'0')+':00:00');
+    end.setHours(end.getHours()+1);
+    if(nowD>end){s.status='done';s.autoDone=true;s.updatedAt=now();n++;}
+  });
+  if(n){saveLocal();schedulePush();}
+  return n;
+}
 function dedupeSessions(){
   let ghost=0; /* 7월 시트에 없는 6/29~30 유령 세션은 언제 발견돼도 즉시 제거 */
   DB.sessions=DB.sessions.filter(s=>{
@@ -301,6 +313,12 @@ function memberSessions(mid){return DB.sessions.filter(s=>s.memberId===mid);}
 function usedOf(m){return (m.carryUsed||0)+memberSessions(m.id).filter(countable).length;}
 function totalOf(m){return (m.packages||[]).reduce((a,p)=>a+(+p.count||0),0);}
 function perOf(m){const p=(m.packages||[]).slice(-1)[0];return p?(+p.perPrice||0):0;}
+/* 해당 회차(o)가 속한 결제(패키지)의 회당 단가 — 재등록 할인 시 그 회차부터 새 단가 적용 */
+function perForOrdinal(m,o){
+  let acc=0;
+  for(const p of (m.packages||[])){acc+=(+p.count||0);if(o<=acc)return +p.perPrice||0;}
+  return perOf(m);
+}
 function remainOf(m){return totalOf(m)-usedOf(m);}
 function ordinalMap(mid){
   const m=DB.members.find(x=>x.id===mid);if(!m)return {};
@@ -413,6 +431,7 @@ async function pullSync(force){
       SYNC.syncedVer=rows[0].version;
       saveLocal();
       if(dedupeSessions())schedulePush();
+      autoCompletePast();
       SYNC.state='on';
       notifyNew(prevEvts);
       if(!document.getElementById('overlay').classList.contains('show'))render();
@@ -601,11 +620,15 @@ function viewDash(){
   const payArr=months.map(k=>monthStats(k).pay);
   const doneArr=months.map(k=>monthStats(k).done);
   const maxPay=Math.max(...payArr,1),maxDone=Math.max(...doneArr,1);
+  const omCache={};
   const tRows=DB.trainers.map(t=>{
     const mems=DB.members.filter(m=>m.status==='active'&&m.trainer===t);
     const doneList=DB.sessions.filter(s=>s.trainer===t&&s.status==='done'&&monthKey(s.date)===mk);
     const doneS=doneList.length;
-    let settle=0;doneList.forEach(s=>{const m=DB.members.find(x=>x.id===s.memberId);if(m)settle+=perOf(m);});
+    let settle=0;doneList.forEach(s=>{const m=DB.members.find(x=>x.id===s.memberId);if(!m)return;
+      if(!omCache[m.id])omCache[m.id]=ordinalMap(m.id);
+      const o=omCache[m.id][s.id];
+      settle+=o?perForOrdinal(m,o):perOf(m);});
     const ns=DB.sessions.filter(s=>s.trainer===t&&s.status==='noshow'&&monthKey(s.date)===mk).length;
     let pay=0;mems.forEach(m=>(m.packages||[]).forEach(p=>{if(monthKey(p.date)===mk)pay+=(+p.amount||0);}));
     const gxN=(DB.gx||[]).filter(g=>g.trainer===t&&monthKey(g.date)===mk&&g.date<=today()).length;
@@ -645,7 +668,7 @@ function viewDash(){
     <table><thead><tr><th>트레이너</th><th>담당 활성 회원</th><th>완료 세션</th><th>💰 수업료 정산</th><th>GX 횟수</th><th>GX 정산</th><th>노쇼</th><th>담당 결제액</th><th>재등록 임박</th></tr></thead>
     <tbody>${tRows.map(r=>`<tr><td><b style="color:${tMeta(r.t).color}">${esc(r.t)}</b></td><td class="mono">${r.mem}명</td><td class="mono">${r.doneS}회</td><td class="mono" style="font-weight:800">${fmtW(r.settle)}</td><td class="mono">${r.gxN}회</td><td class="mono">${r.gxPay?fmtW(r.gxPay):'-'}</td><td class="mono">${r.ns}</td><td class="mono">${fmtW(r.pay)}</td><td>${r.gold?`<span class="badge b-warn">${r.gold}명</span>`:'-'}</td></tr>`).join('')}
     <tr style="background:#f8fafd"><td><b>합계</b></td><td class="mono">${tRows.reduce((a,r)=>a+r.mem,0)}명</td><td class="mono">${tRows.reduce((a,r)=>a+r.doneS,0)}회</td><td class="mono" style="font-weight:800">${fmtW(tRows.reduce((a,r)=>a+r.settle,0))}</td><td class="mono">${tRows.reduce((a,r)=>a+r.gxN,0)}회</td><td class="mono">${fmtW(tRows.reduce((a,r)=>a+r.gxPay,0))}</td><td class="mono">${tRows.reduce((a,r)=>a+r.ns,0)}</td><td class="mono">${fmtW(tRows.reduce((a,r)=>a+r.pay,0))}</td><td></td></tr></tbody></table>
-    <div class="note" style="margin-top:10px">💰 수업료 정산 = 그 달 <b>완료 세션 수 × 각 회원의 회당 가격</b> (회당 가격 = 결제액÷횟수의 50%). 노쇼·취소는 정산 미포함. GX 정산 = 그 코치의 진행 횟수 × 회당 단가. 회당 단가 = (그 달 GX 결제액[부가세 제외] × 50%, 나머지 50%는 센터 관리비) ÷ 그 달 전체 진행 횟수 — ${mk} 단가 <b>${fmtW(gxRate(mk))}/회</b>. 코치 정산 합계는 항상 그 달 GX 결제액의 50%와 일치합니다.</div>
+    <div class="note" style="margin-top:10px">💰 수업료 정산 = 그 달 완료 세션마다 <b>그 회차가 속한 결제의 회당 가격</b>을 합산 (회당 가격 = 결제액÷횟수의 50%). 재등록 시 단가가 바뀌면 <b>재등록 시작 회차부터 새 단가</b>가 자동 적용됩니다. 노쇼·취소는 정산 미포함. GX 정산 = 그 코치의 진행 횟수 × 회당 단가. 회당 단가 = (그 달 GX 결제액[부가세 제외] × 50%, 나머지 50%는 센터 관리비) ÷ 그 달 전체 진행 횟수 — ${mk} 단가 <b>${fmtW(gxRate(mk))}/회</b>. 코치 정산 합계는 항상 그 달 GX 결제액의 50%와 일치합니다.</div>
   </div>
   <div class="two-col">
     <div class="card"><h2>GX 결제 원장 <span class="hint">누가 · 언제 · 몇 회 · 얼마(부가세 제외)</span>
@@ -746,7 +769,7 @@ function viewSched(){
       return `<td class="${blocked?'blocked':''}" onclick="${blocked?'':'openAddSession(\''+date+'\','+h+',\''+esc(t)+'\')'}">${list.map(s=>chipHTML(s,O(s),false)).join('')}${DB.gx.filter(g=>g.date===date&&g.hour===h&&g.trainer===t).map(g=>`<div class="chip gxchip" onclick="event.stopPropagation();openGxMenu('${g.id}')">GX</div>`).join('')}</td>`;
     }).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
-  return controls+grid+`<div class="note" style="margin-top:10px">회차 번호는 <b>기록에서 자동 계산</b>됩니다 — 예약(파란 점선)=예상 회차, <b>완료(초록)·노쇼(빨강)</b>=확정 차감, <b>⚠ 주황=12시간 이내 취소(차감 판단 대기)</b>. 칩 클릭으로 상태 변경.</div>`;
+  return controls+grid+`<div class="note" style="margin-top:10px">회차 번호는 <b>기록에서 자동 계산</b>됩니다 — 예약(파란 점선)=예상 회차, <b>완료(초록)·노쇼(빨강)</b>=확정 차감, <b>⚠ 주황=차감 판단 대기</b>. 지난 시간의 예약은 <b>자동으로 완료</b> 처리되니 취소·노쇼만 칩을 눌러 직접 변경하세요.</div>`;
 }
 function copyPrevWeek(){
   const prev=[...Array(7)].map((_,i)=>addDays(SCHED.week,i-7));
@@ -1181,8 +1204,9 @@ function openMember(mid){
   </div>
   ${m?`
   <div style="margin-top:14px"><b style="font-size:13px">결제·패키지 이력</b> <button class="btn small" style="margin-left:8px" onclick="addPackage('${m.id}')">+ 재등록 결제 추가</button>
-    <div class="hist" style="margin-top:6px"><table><thead><tr><th>결제일</th><th>횟수</th><th>회당</th><th>금액</th><th></th></tr></thead><tbody>
-    ${pkgs.map((p,i)=>`<tr><td>${p.date||'<span class="badge b-gray">이관</span>'}</td><td class="mono">${p.count}회</td><td class="mono">${fmtW(p.perPrice)}</td><td class="mono">${p.date?fmtW(p.amount):'-'}</td><td>${i===0?'<span class="badge b-blue">초</span>':'<span class="badge b-ok">재</span>'}</td><td style="white-space:nowrap;text-align:right"><button class="btn small ghost" onclick="editPackage('${m.id}','${p.id}')">수정</button> <button class="btn small ghost" style="color:var(--bad)" onclick="deletePackage('${m.id}','${p.id}')">삭제</button></td></tr>`).join('')||'<tr><td colspan="6" class="empty">결제 이력 없음</td></tr>'}
+    <div class="hist" style="margin-top:6px"><table><thead><tr><th>결제일</th><th>적용 회차</th><th>횟수</th><th>회당</th><th>금액</th><th></th></tr></thead><tbody>
+    ${(()=>{let acc=0;return pkgs.map((p,i)=>{const s0=acc+1;acc+=(+p.count||0);
+      return `<tr><td>${p.date||'<span class="badge b-gray">이관</span>'}</td><td class="mono" style="font-weight:700">${s0}~${acc}회</td><td class="mono">${p.count}회</td><td class="mono">${fmtW(p.perPrice)}</td><td class="mono">${p.date?fmtW(p.amount):'-'}</td><td style="white-space:nowrap;text-align:right">${i===0?'<span class="badge b-blue">초</span>':'<span class="badge b-ok">재</span>'} <button class="btn small ghost" onclick="editPackage('${m.id}','${p.id}')">수정</button> <button class="btn small ghost" style="color:var(--bad)" onclick="deletePackage('${m.id}','${p.id}')">삭제</button></td></tr>`;}).join('');})()||'<tr><td colspan="6" class="empty">결제 이력 없음</td></tr>'}
     </tbody></table></div></div>
   <div style="margin-top:12px"><b style="font-size:13px">최근 세션 기록</b>
     <div class="hist" style="margin-top:6px"><table><tbody>
@@ -1226,7 +1250,7 @@ function addPackage(mid){
   const last=(m.packages||[]).slice(-1)[0]||{};
   openModal(`
   <h3>${esc(m.name)} — 재등록 결제 추가</h3>
-  <div class="note" style="margin-bottom:12px">현재 ${usedOf(m)}/${totalOf(m)} (잔여 ${remainOf(m)}회). 결제 추가 시 총 횟수가 늘고 회차는 이어서 자동 계산됩니다.</div>
+  <div class="note" style="margin-bottom:12px">현재 ${usedOf(m)}/${totalOf(m)} (잔여 ${remainOf(m)}회). 이 결제는 <b>${totalOf(m)+1}회차부터</b> 적용되며, 새 회당 가격도 그 회차부터 정산에 반영됩니다.</div>
   <div class="frm">
     <div><label>추가 횟수 *</label><input id="pk-count" type="number" min="1" value="${last.count||30}" oninput="pkPerCalc()"></div>
     <div><label>결제 금액 *</label><input id="pk-amount" type="number" placeholder="예: 1701000" oninput="pkPerCalc()"></div>
@@ -1718,6 +1742,7 @@ load();
 render();
 pullSync(false);
 setInterval(()=>pullSync(false),15000);
+setInterval(()=>{if(autoCompletePast()&&!BOOKING_MODE&&!document.getElementById('overlay').classList.contains('show'))render();},60000);
 </script>
 </body>
 </html>
