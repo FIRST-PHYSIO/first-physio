@@ -1063,6 +1063,34 @@ function genReminder(){
   document.getElementById('rm-out').value=lines.length?lines.join('\n'):'해당 날짜에 예약된 수업이 없습니다.';
 }
 
+/* 회차가 실제와 다를 때 직접 보정 — 세션 기록은 건드리지 않아 그 달 수업 횟수·정산에 영향 없음 */
+function openFixCount(mid){
+  const m=DB.members.find(x=>x.id===mid);if(!m)return;
+  openModal(`
+  <h3>✏️ ${esc(m.name)} — 회차 보정</h3>
+  <div class="note" style="margin-bottom:12px">현재 표시: <b>${usedOf(m)} / ${totalOf(m)}</b>. 아래에 <b>실제 사용 횟수</b>를 입력하면 이관분만 조정됩니다.<br>세션 기록은 그대로라서 <b>이번 달 수업 횟수·수업료 정산에는 영향이 없습니다.</b></div>
+  <div class="frm">
+    <div><label>실제 사용 횟수 *</label><input type="number" id="fx-used" value="${usedOf(m)}" min="0"></div>
+    <div><label>총 횟수 (참고)</label><input type="number" value="${totalOf(m)}" disabled></div>
+    <div class="full"><label>보정 사유 (선택)</label><input id="fx-memo" placeholder="예: 7월 초 수기 기록 누락 1회"></div>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" onclick="openMember('${mid}')">뒤로</button>
+  <button class="btn warn" onclick="applyFixCount('${mid}')">보정 저장</button></div>`);
+}
+function applyFixCount(mid){
+  const m=DB.members.find(x=>x.id===mid);if(!m)return;
+  const target=+document.getElementById('fx-used').value;
+  if(isNaN(target)||target<0){alert('올바른 횟수를 입력해 주세요.');return;}
+  const rec=memberSessions(mid).filter(countable).length;
+  if(target<rec){alert('시스템에 완료 기록만 '+rec+'회 있어 그보다 작게 설정할 수 없습니다.\n잘못된 완료 기록이 있다면 스케줄에서 해당 세션을 취소/삭제해 주세요.');return;}
+  const before=usedOf(m);
+  m.carryUsed=target-rec;
+  const memo=document.getElementById('fx-memo').value.trim();
+  m.notes=((m.notes||'')+'\n['+today()+'] 회차 보정 '+before+'→'+target+(memo?' ('+memo+')':'')).trim();
+  m.updatedAt=now();
+  addEvent('staff',m.name+'님 회차 보정: '+before+' → '+target+'/'+totalOf(m));
+  save();openMember(mid);
+}
 function copyMemberLink(mid){
   if(location.protocol==='file:'){alert('아직 웹에 올리지 않아 링크가 작동하지 않습니다. 호스팅 주소에서 복사해 주세요.');return;}
   const url=location.href.split('?')[0]+'?book=1&m='+mid;
@@ -1130,7 +1158,8 @@ function openMember(mid){
   openModal(`
   <h3>${m?esc(m.name)+' — 회원 정보':'신규 회원 등록'}</h3>
   ${m?`<div class="note" style="margin-bottom:12px">진행 <b>${usedOf(m)} / ${totalOf(m)}</b> (잔여 ${remainOf(m)}회) = 이관분 ${m.carryUsed||0} + 시스템 기록 ${memberSessions(m.id).filter(countable).length}. <b>기록으로만 변동됩니다.</b>
-  <button class="btn small ghost" style="margin-left:8px" onclick="copyMemberLink('${m.id}')">🔗 개인 예약 링크 복사</button></div>`:''}
+  <button class="btn small warn" style="margin-left:8px" onclick="openFixCount('${m.id}')">✏️ 회차 보정</button>
+  <button class="btn small ghost" style="margin-left:4px" onclick="copyMemberLink('${m.id}')">🔗 개인 예약 링크 복사</button></div>`:''}
   <div class="frm">
     <div><label>이름 *</label><input id="mf-name" value="${m?esc(m.name):''}"></div>
     <div><label>연락처</label><input id="mf-phone" value="${m?esc(m.phone||''):''}" placeholder="010-"></div>
