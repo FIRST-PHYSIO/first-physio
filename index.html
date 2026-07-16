@@ -296,7 +296,51 @@ function dedupeSessions(){
   return del.size+ghost;
 }
 function saveLocal(){localStorage.setItem(KEY,JSON.stringify(DB));}
-function save(){saveLocal();schedulePush();}
+/* ---- 실행 취소 (↩️ / Ctrl+Z): 이 기기에서의 최근 작업 30단계 ---- */
+let UNDO=[],PREV=null;
+const SNAP_COLS=['members','sessions','gx','gxPay','refunds','gxMembers','notes','consults','blocks'];
+function snapState(){
+  const o={};
+  SNAP_COLS.forEach(k=>o[k]=DB[k]||[]);
+  o.trainers=DB.trainers;o.trainerMeta=DB.trainerMeta;o.duty=DB.duty;o.noshowDeduct=DB.noshowDeduct;
+  return JSON.parse(JSON.stringify(o));
+}
+function save(){
+  if(PREV){UNDO.push(PREV);if(UNDO.length>30)UNDO.shift();}
+  PREV=snapState();
+  saveLocal();schedulePush();
+  const b=document.getElementById('undo-badge');if(b)b.textContent=UNDO.length;
+}
+function applyUndo(){
+  if(!UNDO.length){alert('되돌릴 작업이 없습니다. (이 기기에서 한 작업만 취소할 수 있어요)');return;}
+  if(!confirm('마지막 작업을 취소하고 이전 상태로 되돌릴까요?'))return;
+  const snap=UNDO.pop();
+  const tomb=new Set((DB.deleted||[]).map(d=>d.id));
+  const idmap={};
+  SNAP_COLS.forEach(k=>{
+    const cur=DB[k]||[];const old=snap[k]||[];
+    const oldIds=new Set(old.map(x=>x.id));
+    cur.forEach(x=>{if(!oldIds.has(x.id))DB.deleted.push({id:x.id,ts:now()});}); /* 그 후 생긴 것 삭제 */
+    DB[k]=old.map(x=>{
+      const y={...x,updatedAt:now()};                       /* 복원본이 병합에서 이기도록 */
+      if(tomb.has(y.id)){const nid='u_'+uid();idmap[y.id]=nid;y.id=nid;} /* 삭제됐던 건 새 ID로 부활 */
+      return y;
+    });
+  });
+  if(Object.keys(idmap).length)DB.sessions.forEach(s=>{if(idmap[s.memberId])s.memberId=idmap[s.memberId];});
+  DB.trainers=snap.trainers;DB.trainerMeta=snap.trainerMeta;DB.duty=snap.duty;DB.noshowDeduct=snap.noshowDeduct;DB.metaTs=now();
+  PREV=snapState();
+  saveLocal();schedulePush();
+  addEvent('staff','↩️ 실행 취소');
+  closeModal();render();
+}
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&(e.key==='z'||e.key==='Z')&&!BOOKING_MODE){
+    const t=(e.target.tagName||'').toUpperCase();
+    if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT')return;
+    e.preventDefault();applyUndo();
+  }
+});
 function uid(){return 'id'+(DB.seq++)+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 function now(){return Date.now();}
 function fmtW(n){return '₩'+(n||0).toLocaleString('ko-KR');}
@@ -434,6 +478,7 @@ async function pullSync(force){
       saveLocal();
       if(dedupeSessions())schedulePush();
       autoCompletePast();
+      PREV=snapState(); /* 다른 기기 변경은 취소 대상에서 제외 */
       SYNC.state='on';
       notifyNew(prevEvts);
       if(!document.getElementById('overlay').classList.contains('show'))render();
@@ -503,6 +548,7 @@ function renderShell(){
       <button data-v="settings" class="${VIEW==='settings'?'on':''}">설정·도움말</button>
     </nav>
     <div class="hdr-right">
+      <button class="bell" onclick="applyUndo()" title="실행 취소 (Ctrl+Z) — 이 기기에서 한 최근 작업을 되돌립니다">↩️${UNDO.length?`<b id="undo-badge" style="background:var(--brand)">${UNDO.length}</b>`:''}</button>
       <button class="bell" onclick="openEvents()" title="알림">🔔${unseenCount()?`<b>${unseenCount()}</b>`:''}</button>
       <span class="sync-dot" id="sync-dot"></span>
     </div>
@@ -1880,6 +1926,7 @@ document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==
 
 /* ================= 시작 ================= */
 load();
+PREV=snapState();
 render();
 pullSync(false);
 setInterval(()=>pullSync(false),15000);
