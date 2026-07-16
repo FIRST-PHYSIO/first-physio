@@ -1264,6 +1264,49 @@ function genReminder(){
   document.getElementById('rm-out').value=lines.length?lines.join('\n'):'해당 날짜에 예약된 수업이 없습니다.';
 }
 
+/* 담당 코치 변경(인수인계) — 적용 시작일부터의 예약·회차·정산이 새 코치로 계산됨 */
+function openTrainerChange(mid){
+  const m=DB.members.find(x=>x.id===mid);if(!m)return;
+  const others=DB.trainers.filter(t=>t!==m.trainer);
+  if(!others.length){alert('변경할 다른 코치가 없습니다.');return;}
+  const nextMon=addDays(mondayOf(today()),7);
+  openModal(`
+  <h3>🔁 ${esc(m.name)} — 담당 코치 변경</h3>
+  <div class="note" style="margin-bottom:12px">현재 담당: <b style="color:${tMeta(m.trainer).color}">${esc(m.trainer)}</b> · 진행 ${usedOf(m)}/${totalOf(m)}<br>
+  적용 시작일 <b>이전</b> 수업(완료·예약)은 기존 코치의 기록·정산으로 남고, <b>이후 예약부터</b> 새 코치로 이동해 그 회차부터 새 코치 정산으로 계산됩니다.</div>
+  <div class="frm">
+    <div><label>새 담당 코치</label><select id="tc-to">${others.map(t=>`<option>${esc(t)}</option>`).join('')}</select></div>
+    <div><label>적용 시작일</label><input type="date" id="tc-from" value="${nextMon}" onchange="tcPreview('${mid}')"></div>
+    <div class="full" id="tc-preview"></div>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" onclick="openMember('${mid}')">뒤로</button>
+  <button class="btn" onclick="applyTrainerChange('${mid}')">담당 변경 실행</button></div>`);
+  tcPreview(mid);
+}
+function tcPreview(mid){
+  const m=DB.members.find(x=>x.id===mid);
+  const from=document.getElementById('tc-from').value;
+  const moved=DB.sessions.filter(s=>s.memberId===mid&&s.status==='booked'&&s.date>=from);
+  const om=ordinalMap(mid);
+  const firstOrd=moved.length?Math.min(...moved.map(s=>om[s.id]||9999)):usedOf(m)+1;
+  document.getElementById('tc-preview').innerHTML=
+    `<div class="note">이동될 예약: <b>${moved.length}건</b> (${from}부터) · 새 코치 정산 시작: <b>${firstOrd}회차부터</b></div>`;
+}
+function applyTrainerChange(mid){
+  const m=DB.members.find(x=>x.id===mid);if(!m)return;
+  const to=document.getElementById('tc-to').value;
+  const from=document.getElementById('tc-from').value;
+  if(!from){alert('적용 시작일을 선택해 주세요.');return;}
+  const fromT=m.trainer;
+  const moved=DB.sessions.filter(s=>s.memberId===mid&&s.status==='booked'&&s.date>=from);
+  const om=ordinalMap(mid);
+  const firstOrd=moved.length?Math.min(...moved.map(s=>om[s.id]||9999)):usedOf(m)+1;
+  moved.forEach(s=>{s.trainer=to;s.updatedAt=now();});
+  m.trainer=to;m.updatedAt=now();
+  m.notes=((m.notes||'')+'\n['+today()+'] 담당 '+fromT+' → '+to+' 인수인계 (적용 '+from+', '+firstOrd+'회차부터)').trim();
+  addEvent('staff',m.name+'님 담당 변경: '+fromT+' → '+to+' ('+from+'부터, 예약 '+moved.length+'건 이동)');
+  save();openMember(mid);
+}
 /* 회차가 실제와 다를 때 직접 보정 — 세션 기록은 건드리지 않아 그 달 수업 횟수·정산에 영향 없음 */
 function openFixCount(mid){
   const m=DB.members.find(x=>x.id===mid);if(!m)return;
@@ -1360,6 +1403,7 @@ function openMember(mid){
   <h3>${m?esc(m.name)+' — 회원 정보':'신규 회원 등록'}</h3>
   ${m?`<div class="note" style="margin-bottom:12px">진행 <b>${usedOf(m)} / ${totalOf(m)}</b> (잔여 ${remainOf(m)}회) = 이관분 ${m.carryUsed||0} + 시스템 기록 ${memberSessions(m.id).filter(countable).length}. <b>기록으로만 변동됩니다.</b>
   <button class="btn small warn" style="margin-left:8px" onclick="openFixCount('${m.id}')">✏️ 회차 보정</button>
+  <button class="btn small ghost" style="margin-left:4px" onclick="openTrainerChange('${m.id}')">🔁 담당 변경</button>
   <button class="btn small ghost" style="margin-left:4px" onclick="copyMemberLink('${m.id}')">🔗 개인 예약 링크 복사</button></div>`:''}
   <div class="frm">
     <div><label>이름 *</label><input id="mf-name" value="${m?esc(m.name):''}"></div>
@@ -1412,7 +1456,19 @@ function saveMember(mid){
     program:document.getElementById('mf-program').value,status:document.getElementById('mf-status').value,
     referredBy:document.getElementById('mf-ref').value.trim(),pref:document.getElementById('mf-pref').value.trim(),
     goal:document.getElementById('mf-goal').value.trim(),notes:document.getElementById('mf-notes').value.trim(),updatedAt:now()};
-  if(mid){const mm=DB.members.find(x=>x.id===mid);Object.assign(mm,base);const cv=document.getElementById('mf-carry');if(cv)mm.carryUsed=Math.max(0,+cv.value||0);}
+  if(mid){
+    const mm=DB.members.find(x=>x.id===mid);
+    const oldT=mm.trainer;
+    Object.assign(mm,base);
+    const cv=document.getElementById('mf-carry');if(cv)mm.carryUsed=Math.max(0,+cv.value||0);
+    if(oldT!==mm.trainer){
+      const fut=DB.sessions.filter(s=>s.memberId===mid&&s.status==='booked'&&s.date>=today()&&s.trainer===oldT);
+      if(fut.length&&confirm('담당 코치가 '+oldT+' → '+mm.trainer+'로 변경되었습니다.\n오늘 이후 예약 '+fut.length+'건도 새 코치로 옮길까요?\n(과거 수업 기록·정산은 기존 코치로 유지됩니다)')){
+        fut.forEach(s=>{s.trainer=mm.trainer;s.updatedAt=now();});
+      }
+      mm.notes=((mm.notes||'')+'\n['+today()+'] 담당 '+oldT+' → '+mm.trainer).trim();
+    }
+  }
   else{
     const count=+document.getElementById('mf-count').value||0;
     if(!count){alert('첫 등록 횟수를 입력해 주세요.');return;}
