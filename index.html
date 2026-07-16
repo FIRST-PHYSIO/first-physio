@@ -277,6 +277,12 @@ function autoCompletePast(){
   return n;
 }
 function dedupeSessions(){
+  /* 담당 코치 없이 저장된 세션 복구 (예: 예전 개인 링크 예약 버그) */
+  let fixed=0;
+  DB.sessions.forEach(s=>{
+    if(!s.trainer){const m=DB.members.find(x=>x.id===s.memberId);if(m&&m.trainer){s.trainer=m.trainer;s.updatedAt=now();fixed++;}}
+  });
+  if(fixed)saveLocal();
   let ghost=0; /* 7월 시트에 없는 6/29~30 유령 세션은 언제 발견돼도 즉시 제거 */
   DB.sessions=DB.sessions.filter(s=>{
     if(s.date>='2026-06-28'&&s.date<='2026-06-30'){DB.deleted.push({id:s.id,ts:now()});ghost++;return false;}
@@ -293,7 +299,7 @@ function dedupeSessions(){
     del.forEach(id=>DB.deleted.push({id,ts:now()}));
     saveLocal();
   }
-  return del.size+ghost;
+  return del.size+ghost+fixed;
 }
 function saveLocal(){localStorage.setItem(KEY,JSON.stringify(DB));}
 /* ---- 실행 취소 (↩️ / Ctrl+Z): 이 기기에서의 최근 작업 30단계 ---- */
@@ -1890,7 +1896,8 @@ function bkConfirmName(){
 }
 async function memberBook(date,hour){
   await pullSync(true);
-  const me=DB.members.find(m=>m.id===BK.memberId);const coach=BK.coach;
+  const me=DB.members.find(m=>m.id===BK.memberId);
+  const coach=(me&&me.trainer)||BK.coach; /* 개인 링크에서도 담당 코치로 예약 */
   if(hoursUntil(date,hour)<BOOK_LEAD_HOURS){alert('수업 시작 12시간 이내에는 예약할 수 없습니다. 코치에게 직접 연락해 주세요.');render();return;}
   if(isBlocked(coach,date,hour)||(DB.gx||[]).some(g=>g.date===date&&g.hour===hour&&g.trainer===coach)||DB.sessions.find(s=>s.date===date&&s.hour===hour&&s.trainer===coach&&['booked','done'].includes(s.status))){alert('방금 다른 예약이 들어왔거나 불가한 시간입니다. 다른 시간을 선택해 주세요.');render();return;}
   const myBooked=memberSessions(me.id).filter(s=>s.status==='booked').length;
