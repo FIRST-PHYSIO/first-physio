@@ -96,6 +96,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #b9ccff;border-color:v
 .chip.over{outline:2px solid var(--bad)}
 .chip.gxchip{background:#1233a8;color:#fff;border:1px solid #1233a8}
 .chip.consult{background:#fff4e6;color:#b45309;border:1px solid #f5c98b}
+.chip.personal{background:#e9ecf3;color:#39445c;border:1px solid #d3d9e5;font-style:italic}
 .pt-cnt td{background:#f8fafd;font-size:11px;padding:4px 6px;cursor:default}
 .wd-row{display:flex;gap:4px;flex-wrap:wrap}
 .wd-row label{display:flex;align-items:center;gap:3px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12.5px;font-weight:700;cursor:pointer}
@@ -199,9 +200,9 @@ const REAL_SEED={"members":[{"id":"m_0","name":"Tasya","trainer":"김택연","pr
 
 /* ================= 데이터 ================= */
 let DB=null;
-function fresh(){return {members:[],sessions:[],gx:[],gxPay:[],refunds:[],gxMembers:[],notes:[],consults:[],blocks:[],events:[],deleted:[],trainers:['홍웅표','신종수','김택연','정병건','장동진','김강윤'],trainerMeta:{},duty:JSON.parse(JSON.stringify(DEFAULT_DUTY)),noshowDeduct:true,metaTs:Date.now(),seq:1};}
+function fresh(){return {members:[],sessions:[],gx:[],gxPay:[],refunds:[],gxMembers:[],notes:[],consults:[],personal:[],blocks:[],events:[],deleted:[],trainers:['홍웅표','신종수','김택연','정병건','장동진','김강윤'],trainerMeta:{},duty:JSON.parse(JSON.stringify(DEFAULT_DUTY)),noshowDeduct:true,metaTs:Date.now(),seq:1};}
 function load(){
-  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));DB.gx=DB.gx||[];DB.gxPay=DB.gxPay||[];DB.refunds=DB.refunds||[];DB.gxMembers=DB.gxMembers||[];DB.notes=DB.notes||[];DB.consults=DB.consults||[];seedGxMembers();ensureMeetingBlocks();applyJulyPatch();dedupeSessions();autoCompletePast();return;}}catch(e){}
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));DB.gx=DB.gx||[];DB.gxPay=DB.gxPay||[];DB.refunds=DB.refunds||[];DB.gxMembers=DB.gxMembers||[];DB.notes=DB.notes||[];DB.consults=DB.consults||[];DB.personal=DB.personal||[];seedGxMembers();ensureMeetingBlocks();applyJulyPatch();dedupeSessions();autoCompletePast();return;}}catch(e){}
   DB=fresh();importSeed();seedGxMembers();ensureMeetingBlocks();applyJulyPatch();dedupeSessions();autoCompletePast();
 }
 /* 7월 시트 정밀 재추출 반영 패치(v2) — 시트가 7월의 기준.
@@ -304,7 +305,7 @@ function dedupeSessions(){
 function saveLocal(){localStorage.setItem(KEY,JSON.stringify(DB));}
 /* ---- 실행 취소 (↩️ / Ctrl+Z): 이 기기에서의 최근 작업 30단계 ---- */
 let UNDO=[],PREV=null;
-const SNAP_COLS=['members','sessions','gx','gxPay','refunds','gxMembers','notes','consults','blocks'];
+const SNAP_COLS=['members','sessions','gx','gxPay','refunds','gxMembers','notes','consults','personal','blocks'];
 function snapState(){
   const o={};
   SNAP_COLS.forEach(k=>o[k]=DB[k]||[]);
@@ -462,7 +463,7 @@ function mergeDB(local,remote){
   const deleted=mergeCol(local.deleted||[],remote.deleted||[],[]).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,4000);
   const out={...local};
   out.deleted=deleted;
-  ['members','sessions','gx','gxPay','refunds','gxMembers','notes','consults','blocks','events'].forEach(k=>out[k]=mergeCol(local[k],remote[k],deleted));
+  ['members','sessions','gx','gxPay','refunds','gxMembers','notes','consults','personal','blocks','events'].forEach(k=>out[k]=mergeCol(local[k],remote[k],deleted));
   out.events.sort((a,b)=>b.ts-a.ts);out.events=out.events.slice(0,300);
   if((remote.metaTs||0)>(local.metaTs||0)){out.trainers=remote.trainers;out.noshowDeduct=remote.noshowDeduct;out.trainerMeta=remote.trainerMeta||{};out.duty=remote.duty||local.duty;out.metaTs=remote.metaTs;}
   out.seq=Math.max(local.seq||1,remote.seq||1);
@@ -688,7 +689,12 @@ function viewDash(){
   const doneArr=months.map(k=>monthStats(k).done);
   const maxPay=Math.max(...payArr,1),maxDone=Math.max(...doneArr,1);
   const omCache={};
-  const tRows=DB.trainers.map(t=>{
+  /* 퇴사한 코치도 그 달에 수업·GX 기록이 있으면 성과 표에 포함 (정산 보존) */
+  const actSet=new Set();
+  DB.sessions.forEach(s=>{if(monthKey(s.date)===mk&&s.trainer)actSet.add(s.trainer);});
+  (DB.gx||[]).forEach(g=>{if(monthKey(g.date)===mk&&g.trainer)actSet.add(g.trainer);});
+  const rowTrainers=[...DB.trainers,...[...actSet].filter(t=>!DB.trainers.includes(t))];
+  const tRows=rowTrainers.map(t=>{
     const mems=DB.members.filter(m=>m.status==='active'&&m.trainer===t);
     const doneS=DB.sessions.filter(s=>s.trainer===t&&s.status==='done'&&monthKey(s.date)===mk).length;
     /* 정산: 완료 + 노쇼(차감된 것) 포함 — 회원에게 차감됐으니 수업료 발생 */
@@ -702,7 +708,7 @@ function viewDash(){
     const gxN=(DB.gx||[]).filter(g=>g.trainer===t&&monthKey(g.date)===mk&&g.date<=today()).length;
     const gxPay=gxN*gxRate(mk);
     const gold=mems.filter(m=>totalOf(m)>0&&remainOf(m)<=3).length;
-    return {t,mem:mems.length,doneS,ns,pay,gold,settle,gxN,gxPay};
+    return {t,mem:mems.length,doneS,ns,pay,gold,settle,gxN,gxPay,former:!DB.trainers.includes(t)};
   });
   return `
   <div class="toolbar">
@@ -734,16 +740,31 @@ function viewDash(){
   </div>
   <div class="card"><h2>트레이너별 성과 <span class="hint">${mk} · 주간/월간 리뷰 자료</span></h2>
     <table><thead><tr><th>트레이너</th><th>담당 활성 회원</th><th>완료 세션</th><th>💰 수업료 정산</th><th>GX 횟수</th><th>GX 정산</th><th>노쇼</th><th>담당 결제액</th><th>재등록 임박</th></tr></thead>
-    <tbody>${tRows.map(r=>`<tr><td><b style="color:${tMeta(r.t).color}">${esc(r.t)}</b></td><td class="mono">${r.mem}명</td><td class="mono">${r.doneS}회</td><td class="mono" style="font-weight:800">${fmtW(r.settle)}</td><td class="mono">${r.gxN}회</td><td class="mono">${r.gxPay?fmtW(r.gxPay):'-'}</td><td class="mono">${r.ns}</td><td class="mono">${fmtW(r.pay)}</td><td>${r.gold?`<span class="badge b-warn">${r.gold}명</span>`:'-'}</td></tr>`).join('')}
+    <tbody>${tRows.map(r=>`<tr><td><b style="color:${tMeta(r.t).color}">${esc(r.t)}</b>${r.former?' <span class="badge b-gray">퇴사</span>':''}</td><td class="mono">${r.mem}명</td><td class="mono">${r.doneS}회</td><td class="mono" style="font-weight:800">${fmtW(r.settle)}</td><td class="mono">${r.gxN}회</td><td class="mono">${r.gxPay?fmtW(r.gxPay):'-'}</td><td class="mono">${r.ns}</td><td class="mono">${fmtW(r.pay)}</td><td>${r.gold?`<span class="badge b-warn">${r.gold}명</span>`:'-'}</td></tr>`).join('')}
     <tr style="background:#f8fafd"><td><b>합계</b></td><td class="mono">${tRows.reduce((a,r)=>a+r.mem,0)}명</td><td class="mono">${tRows.reduce((a,r)=>a+r.doneS,0)}회</td><td class="mono" style="font-weight:800">${fmtW(tRows.reduce((a,r)=>a+r.settle,0))}</td><td class="mono">${tRows.reduce((a,r)=>a+r.gxN,0)}회</td><td class="mono">${fmtW(tRows.reduce((a,r)=>a+r.gxPay,0))}</td><td class="mono">${tRows.reduce((a,r)=>a+r.ns,0)}</td><td class="mono">${fmtW(tRows.reduce((a,r)=>a+r.pay,0))}</td><td></td></tr></tbody></table>
     <div class="note" style="margin-top:10px">💰 수업료 정산 = 그 달 완료 세션마다 <b>그 회차가 속한 결제의 회당 가격</b>을 합산 (회당 가격 = 결제액÷횟수의 50%). 재등록 시 단가가 바뀌면 <b>재등록 시작 회차부터 새 단가</b>가 자동 적용됩니다. <b>노쇼(차감)는 정산에 포함</b>되고, 차감 없는 취소는 미포함. GX 정산 = 그 코치의 진행 횟수 × 회당 단가. 회당 단가 = (그 달 GX 결제액[부가세 제외] × 50%, 나머지 50%는 센터 관리비) ÷ 그 달 전체 진행 횟수 — ${mk} 단가 <b>${fmtW(gxRate(mk))}/회</b>. 코치 정산 합계는 항상 그 달 GX 결제액의 50%와 일치합니다.</div>
   </div>
+  <div class="two-col">
   <div class="card"><h2>이번 달 신규 PT 등록 <span class="hint">${mk} · 코치별 명단</span></h2>
     <table><tbody>${DB.trainers.map(t=>{
       const list=DB.members.filter(m=>m.trainer===t&&m.packages&&m.packages[0]&&monthKey(m.packages[0].date)===mk);
       return `<tr><td style="width:90px"><b style="color:${tMeta(t).color}">${esc(t)}</b></td><td class="mono" style="width:56px;font-weight:800">${list.length}명</td><td>${list.map(m=>`<span class="badge b-blue" style="cursor:pointer;margin:2px" onclick="openMember('${m.id}')">${esc(m.name)}</span>`).join(' ')||'<span style="color:var(--sub);font-size:12px">-</span>'}</td></tr>`;
     }).join('')}
     <tr style="background:#f8fafd"><td><b>합계</b></td><td class="mono" style="font-weight:800">${DB.members.filter(m=>m.packages&&m.packages[0]&&monthKey(m.packages[0].date)===mk).length}명</td><td></td></tr></tbody></table>
+  </div>
+  <div class="card"><h2>PT 결제 원장 <span class="hint">실제 결제 내역 (이관분 제외)</span></h2>
+    ${(function(){
+      const pays=[];
+      DB.members.forEach(m=>(m.packages||[]).forEach((p,i)=>{if(p.date)pays.push({date:p.date,name:m.name,mid:m.id,count:p.count,amount:+p.amount||0,re:i>0});}));
+      pays.sort((a,b)=>b.date.localeCompare(a.date));
+      const monthSum=pays.filter(p=>monthKey(p.date)===mk).reduce((a,p)=>a+p.amount,0);
+      const monthN=pays.filter(p=>monthKey(p.date)===mk).length;
+      return `<div class="note" style="margin-bottom:8px">${mk} 합계: <b>${fmtW(monthSum)}</b> · ${monthN}건</div>`+
+      (pays.length?`<table><thead><tr><th>결제일</th><th>이름</th><th>횟수</th><th>금액</th><th></th></tr></thead><tbody>
+      ${pays.slice(0,10).map(p=>`<tr class="clickable" onclick="openMember('${p.mid}')"><td>${p.date}</td><td><b>${esc(p.name)}</b></td><td class="mono">${p.count}회</td><td class="mono">${fmtW(p.amount)}</td><td>${p.re?'<span class="badge b-ok">재</span>':'<span class="badge b-blue">초</span>'}</td></tr>`).join('')}</tbody></table>
+      ${pays.length>10?`<div style="font-size:12px;color:var(--sub);margin-top:6px">외 ${pays.length-10}건 — 각 회원 카드에서 확인</div>`:''}`:'<div class="empty">결제 기록 없음</div>');
+    })()}
+  </div>
   </div>
   <div class="two-col">
     <div class="card"><h2>GX 결제 원장 <span class="hint">누가 · 언제 · 몇 회 · 얼마(부가세 제외)</span>
@@ -813,6 +834,27 @@ function dropSes(e,date,hour,trainer){
   s.date=date;s.hour=hour;if(trainer)s.trainer=trainer;s.updatedAt=now();
   save();render();
 }
+function personalChips(date,hour,tf){
+  return (DB.personal||[]).filter(p=>p.date===date&&p.hour===hour&&(!tf||p.trainer===tf)).map(p=>{
+    const tm=tMeta(p.trainer);
+    return `<div class="chip personal" style="border-left:3px solid ${tm.color}" onclick="event.stopPropagation();openPersonalMenu('${p.id}')">⏱ ${esc(tm.initial)}·${esc(p.text)}</div>`;
+  }).join('');
+}
+function openPersonalMenu(id){
+  const p=DB.personal.find(x=>x.id===id);if(!p)return;
+  openModal(`
+  <h3>개인 일정 — ${korDate(p.date)} ${p.hour}:00</h3>
+  <div class="frm">
+    <div><label>코치</label><select id="ps-trainer">${DB.trainers.map(t=>`<option ${p.trainer===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+    <div><label>시간</label><select id="ps-hour">${HOURS.map(x=>`<option value="${x}" ${x===p.hour?'selected':''}>${x}:00</option>`).join('')}</select></div>
+    <div class="full"><label>내용</label><input id="ps-text" value="${esc(p.text||'')}"></div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="if(confirm('삭제할까요?')){DB.deleted.push({id:'${id}',ts:now()});DB.personal=DB.personal.filter(x=>x.id!=='${id}');save();closeModal();render();}">삭제</button>
+    <button class="btn ghost" onclick="closeModal()">닫기</button>
+    <button class="btn" onclick="(function(){const p2=DB.personal.find(x=>x.id==='${id}');p2.trainer=document.getElementById('ps-trainer').value;p2.hour=+document.getElementById('ps-hour').value;p2.text=document.getElementById('ps-text').value.trim();p2.updatedAt=now();save();closeModal();render();})()">저장</button>
+  </div>`);
+}
 function gxChips(date,hour){
   return DB.gx.filter(g=>g.date===date&&g.hour===hour).map(g=>{
     const tm=tMeta(g.trainer);
@@ -862,7 +904,7 @@ function viewSched(){
     <tbody>${HOURS.map(h=>`<tr><td class="time">${h}:00</td>${days.map(d=>{
       const list=weekSessions.filter(s=>s.date===d&&s.hour===h).sort((a,b)=>a.trainer.localeCompare(b.trainer,'ko'));
       const blocked=tf&&isBlocked(tf,d,h);
-      return `<td class="${blocked?'blocked':''} ${d<today()?'past-col':''}" ondragover="event.preventDefault()" ondrop="dropSes(event,'${d}',${h},'${esc(tf)}')" onclick="${blocked?'':'openAddSession(\''+d+'\','+h+',\''+esc(tf)+'\')'}">${list.map(s=>chipHTML(s,O(s),!tf)).join('')}${consultChips(d,h,tf)}${(!tf)?gxChips(d,h):DB.gx.filter(g=>g.date===d&&g.hour===h&&g.trainer===tf).map(g=>gxChips(d,h)).join('')}</td>`;
+      return `<td class="${blocked?'blocked':''} ${d<today()?'past-col':''}" ondragover="event.preventDefault()" ondrop="dropSes(event,'${d}',${h},'${esc(tf)}')" onclick="${blocked?'':'openAddSession(\''+d+'\','+h+',\''+esc(tf)+'\')'}">${list.map(s=>chipHTML(s,O(s),!tf)).join('')}${consultChips(d,h,tf)}${personalChips(d,h,tf)}${(!tf)?gxChips(d,h):DB.gx.filter(g=>g.date===d&&g.hour===h&&g.trainer===tf).map(g=>gxChips(d,h)).join('')}</td>`;
     }).join('')}</tr>`).join('')}</tbody>
     <tfoot><tr class="pt-cnt"><td class="time" style="font-weight:800">PT 수</td>${days.map(d=>{
       const parts=DB.trainers.filter(t=>!tf||t===tf).map(t=>{
@@ -885,7 +927,7 @@ function viewSched(){
     <tbody>${HOURS.map(h=>`<tr><td class="time">${h}:00</td>${DB.trainers.map(t=>{
       const list=daySessions.filter(s=>s.trainer===t&&s.hour===h);
       const blocked=isBlocked(t,date,h);
-      return `<td class="${blocked?'blocked':''}" ondragover="event.preventDefault()" ondrop="dropSes(event,'${date}',${h},'${esc(t)}')" onclick="${blocked?'':'openAddSession(\''+date+'\','+h+',\''+esc(t)+'\')'}">${list.map(s=>chipHTML(s,O(s),false)).join('')}${consultChips(date,h,t)}${DB.gx.filter(g=>g.date===date&&g.hour===h&&g.trainer===t).map(g=>`<div class="chip gxchip" onclick="event.stopPropagation();openGxMenu('${g.id}')">GX</div>`).join('')}</td>`;
+      return `<td class="${blocked?'blocked':''}" ondragover="event.preventDefault()" ondrop="dropSes(event,'${date}',${h},'${esc(t)}')" onclick="${blocked?'':'openAddSession(\''+date+'\','+h+',\''+esc(t)+'\')'}">${list.map(s=>chipHTML(s,O(s),false)).join('')}${consultChips(date,h,t)}${personalChips(date,h,t)}${DB.gx.filter(g=>g.date===date&&g.hour===h&&g.trainer===t).map(g=>`<div class="chip gxchip" onclick="event.stopPropagation();openGxMenu('${g.id}')">GX</div>`).join('')}</td>`;
     }).join('')}</tr>`).join('')}</tbody>
     <tfoot><tr class="pt-cnt"><td class="time" style="font-weight:800">PT 수</td>${DB.trainers.map(t=>{
       const n=DB.sessions.filter(s=>s.date===date&&s.trainer===t&&['booked','done','noshow'].includes(s.status)).length;
@@ -922,6 +964,7 @@ function openAddSession(date,hour,trainer){
     <button id="tab-pt" class="on" onclick="setAddMode('pt')">PT 수업</button>
     <button id="tab-gx" onclick="setAddMode('gx')">그룹 (GX)</button>
     <button id="tab-cs" onclick="setAddMode('cs')">상담</button>
+    <button id="tab-ps" onclick="setAddMode('ps')">개인 일정</button>
     <button id="tab-bl" onclick="setAddMode('bl')">🚫 수업 불가</button>
   </div>
   <div id="pane-pt">
@@ -965,6 +1008,17 @@ function openAddSession(date,hour,trainer){
   </div>
   <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button><button class="btn" onclick="addConsult()">상담 등록</button></div>
   </div>
+  <div id="pane-ps" style="display:none">
+  <div class="note" style="margin-bottom:10px">코치 개인 활동(운동·공부·영상 편집 등)을 시간대에 적어두면 스케줄에서 바로 확인할 수 있습니다.</div>
+  <div class="frm">
+    <div><label>코치</label><select id="psa-trainer">${tOpts(SCHED.trainerFilter||trainer)}</select></div>
+    <div><label>날짜</label><input type="date" id="psa-date" value="${date}"></div>
+    <div><label>시간</label><select id="psa-hour">${HOURS.map(h2=>`<option value="${h2}" ${h2===+hour?'selected':''}>${h2}:00</option>`).join('')}</select></div>
+    <div><label>반복</label><select id="psa-repeat"><option value="1">이 날만</option><option value="4">매주 4주</option><option value="8">매주 8주</option><option value="12">매주 12주</option></select></div>
+    <div class="full"><label>내용 *</label><input id="psa-text" placeholder="예: 운동, 공부, 블로그 작성"></div>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button><button class="btn" onclick="addPersonal()">등록</button></div>
+  </div>
   <div id="pane-bl" style="display:none">
   <div class="note" style="margin-bottom:10px">이 날짜의 특정 시간을 막습니다 (회원 예약 불가). 매주 반복 차단은 스케줄 상단 [🚫 수업 불가 시간]에서 설정하세요.</div>
   <div class="frm">
@@ -978,7 +1032,7 @@ function openAddSession(date,hour,trainer){
   asFillMembers();
 }
 function setAddMode(m2){
-  ['pt','gx','cs','bl'].forEach(k=>{
+  ['pt','gx','cs','ps','bl'].forEach(k=>{
     document.getElementById('pane-'+k).style.display=k===m2?'':'none';
     document.getElementById('tab-'+k).classList.toggle('on',k===m2);
   });
@@ -1014,6 +1068,20 @@ function addConsult(){
     name,date:document.getElementById('csa-date').value,hour:+document.getElementById('csa-hour').value,
     memo:document.getElementById('csa-memo').value.trim(),updatedAt:now()});
   addEvent('staff','상담 등록: '+name);
+  save();closeModal();render();
+}
+function addPersonal(){
+  const text=document.getElementById('psa-text').value.trim();
+  if(!text){alert('내용을 입력해 주세요.');return;}
+  const t=document.getElementById('psa-trainer').value;
+  const d0=document.getElementById('psa-date').value;
+  const hh=+document.getElementById('psa-hour').value;
+  const rep2=+document.getElementById('psa-repeat').value;
+  for(let i=0;i<rep2;i++){
+    const d=addDays(d0,i*7);
+    if(DB.personal.some(p=>p.date===d&&p.hour===hh&&p.trainer===t&&p.text===text))continue;
+    DB.personal.push({id:uid(),trainer:t,date:d,hour:hh,text,updatedAt:now()});
+  }
   save();closeModal();render();
 }
 function addBlockQuick(){
@@ -1089,8 +1157,11 @@ function openSessionMenu(sid){
   <h3>${esc(m?m.name:'?')} — ${korDate(s.date)} ${s.hour}:00</h3>
   <div class="note" style="margin-bottom:12px">상태: <b>${stName}</b> · 회차 ${o?o+' / '+totalOf(m):'—'} · 담당 ${esc(s.trainer)}${s.bookedBy==='member'?' · <span class="badge b-vio">회원 직접 예약</span>':''}<br>완료/노쇼 처리 시 자동 차감 — 이후 예약 회차가 자동으로 다시 계산됩니다.</div>
   ${s.status==='late_cancel'?`<div class="note warn" style="margin-bottom:10px">수업 12시간 이내 취소입니다. 회원과 연락 후 코치 재량으로 결정하세요.</div>`:''}
-  <div class="frm" style="margin-bottom:10px"><div class="full"><label>메모 (구체 시간 등)</label>
-    <div style="display:flex;gap:6px"><input id="sm-memo" value="${esc(s.memo||'')}" placeholder="예: 11:30 시작" style="flex:1"><button class="btn small ghost" onclick="(function(){const s2=DB.sessions.find(x=>x.id==='${sid}');s2.memo=document.getElementById('sm-memo').value.trim();s2.updatedAt=now();save();closeModal();render();})()">메모 저장</button></div></div></div>
+  <div class="frm" style="margin-bottom:10px">
+    <div><label>담당 코치 (이 수업만 변경 — 정산에 반영)</label><select id="sm-trainer">${DB.trainers.map(t=>`<option ${s.trainer===t?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+    <div><label>메모 (구체 시간 등)</label><input id="sm-memo" value="${esc(s.memo||'')}" placeholder="예: 11:30 시작"></div>
+    <div class="full"><button class="btn small ghost" onclick="(function(){const s2=DB.sessions.find(x=>x.id==='${sid}');s2.memo=document.getElementById('sm-memo').value.trim();s2.trainer=document.getElementById('sm-trainer').value;s2.updatedAt=now();save();closeModal();render();})()">코치·메모 저장</button></div>
+  </div>
   <div class="pill-row">
     <button class="btn" onclick="setSession('${sid}','done')">✓ 수업 완료</button>
     <button class="btn danger" onclick="setSession('${sid}','noshow')">✗ 노쇼/차감${DB.noshowDeduct?'':' (차감 OFF)'}</button>
@@ -1286,11 +1357,12 @@ function openTrainerChange(mid){
 function tcPreview(mid){
   const m=DB.members.find(x=>x.id===mid);
   const from=document.getElementById('tc-from').value;
-  const moved=DB.sessions.filter(s=>s.memberId===mid&&s.status==='booked'&&s.date>=from);
+  const moved=DB.sessions.filter(s=>s.memberId===mid&&s.date>=from&&['booked','done','noshow'].includes(s.status));
+  const doneN=moved.filter(s=>s.status!=='booked').length;
   const om=ordinalMap(mid);
   const firstOrd=moved.length?Math.min(...moved.map(s=>om[s.id]||9999)):usedOf(m)+1;
   document.getElementById('tc-preview').innerHTML=
-    `<div class="note">이동될 예약: <b>${moved.length}건</b> (${from}부터) · 새 코치 정산 시작: <b>${firstOrd}회차부터</b></div>`;
+    `<div class="note">이동 대상: 예약 <b>${moved.length-doneN}건</b>${doneN?` + 이미 진행된 수업 <b>${doneN}건</b> (완료·노쇼 — 정산도 새 코치로 이동)`:''} · 새 코치 정산 시작: <b>${firstOrd}회차부터</b><br><span style="color:var(--sub)">적용일을 과거로 잡으면 그 이후 완료된 수업의 정산도 새 코치에게 넘어갑니다.</span></div>`;
 }
 function applyTrainerChange(mid){
   const m=DB.members.find(x=>x.id===mid);if(!m)return;
@@ -1298,7 +1370,7 @@ function applyTrainerChange(mid){
   const from=document.getElementById('tc-from').value;
   if(!from){alert('적용 시작일을 선택해 주세요.');return;}
   const fromT=m.trainer;
-  const moved=DB.sessions.filter(s=>s.memberId===mid&&s.status==='booked'&&s.date>=from);
+  const moved=DB.sessions.filter(s=>s.memberId===mid&&s.date>=from&&['booked','done','noshow'].includes(s.status));
   const om=ordinalMap(mid);
   const firstOrd=moved.length?Math.min(...moved.map(s=>om[s.id]||9999)):usedOf(m)+1;
   moved.forEach(s=>{s.trainer=to;s.updatedAt=now();});
