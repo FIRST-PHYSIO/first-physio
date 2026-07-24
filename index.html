@@ -83,7 +83,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #b9ccff;border-color:v
 .sched td{border:1px solid var(--line);padding:3px;min-width:110px;height:44px;vertical-align:top;cursor:pointer}
 .sched td:hover{background:#f5f8ff}
 .sched td.time{background:#f8fafd;font-weight:700;color:var(--sub);text-align:center;min-width:56px;cursor:default;font-size:12px}
-.sched td.blocked{background:repeating-linear-gradient(45deg,#f0f2f6,#f0f2f6 6px,#e6e9f0 6px,#e6e9f0 12px);cursor:not-allowed}
+.sched td.blocked{background:repeating-linear-gradient(45deg,#f0f2f6,#f0f2f6 6px,#e6e9f0 6px,#e6e9f0 12px);cursor:pointer}
 .sched td.past-col{background:#fbfcfe}
 .chip{border-radius:6px;padding:3px 6px;font-size:11.5px;font-weight:600;margin-bottom:2px;line-height:1.3;cursor:pointer}
 .chip .cnt{font-weight:800}
@@ -823,6 +823,25 @@ function openConsultMenu(id){
     <button class="btn" onclick="(function(){const c2=DB.consults.find(x=>x.id==='${id}');c2.kind=document.getElementById('cs-kind').value;c2.trainer=document.getElementById('cs-trainer').value;c2.name=document.getElementById('cs-name').value.trim();c2.hour=+document.getElementById('cs-hour').value;c2.memo=document.getElementById('cs-memo').value.trim();c2.updatedAt=now();save();closeModal();render();})()">저장</button>
   </div>`);
 }
+/* 막힌 칸 클릭 → 차단 해제 */
+function openBlockedCell(trainer,date,hour){
+  const wd=(new Date(date+'T00:00:00').getDay()+6)%7;
+  const list=DB.blocks.filter(b=>b.trainer===trainer&&b.hour===hour&&((b.date===date)||(!b.date&&b.weekday===wd)));
+  if(!list.length){render();return;}
+  openModal(`
+  <h3>🚫 수업 불가 시간 — ${esc(trainer)} · ${korDate(date)} ${hour}:00</h3>
+  ${list.map(b=>`<div class="note" style="margin-bottom:8px;display:flex;align-items:center;gap:8px">
+    <span style="flex:1">${b.date?`특정 날짜 차단 (${korDate(b.date)}만)`:`매주 ${DAYN[b.weekday]}요일 반복 차단${(b.id||'').startsWith('mtg_')?' · 회의 시간':''}`}</span>
+    <button class="btn small danger" onclick="unblock('${b.id}')">해제</button></div>`).join('')}
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">닫기</button></div>`);
+}
+function unblock(id){
+  const b=DB.blocks.find(x=>x.id===id);if(!b)return;
+  if(!b.date&&!confirm('매주 반복 차단입니다. 해제하면 모든 주에서 풀립니다. 계속할까요?'))return;
+  DB.deleted.push({id,ts:now()});
+  DB.blocks=DB.blocks.filter(x=>x.id!==id);
+  save();closeModal();render();
+}
 /* 드래그로 세션 이동 */
 function dragSes(e,id){e.dataTransfer.setData('text/plain',id);}
 function dropSes(e,date,hour,trainer){
@@ -904,7 +923,7 @@ function viewSched(){
     <tbody>${HOURS.map(h=>`<tr><td class="time">${h}:00</td>${days.map(d=>{
       const list=weekSessions.filter(s=>s.date===d&&s.hour===h).sort((a,b)=>a.trainer.localeCompare(b.trainer,'ko'));
       const blocked=tf&&isBlocked(tf,d,h);
-      return `<td class="${blocked?'blocked':''} ${d<today()?'past-col':''}" ondragover="event.preventDefault()" ondrop="dropSes(event,'${d}',${h},'${esc(tf)}')" onclick="${blocked?'':'openAddSession(\''+d+'\','+h+',\''+esc(tf)+'\')'}">${list.map(s=>chipHTML(s,O(s),!tf)).join('')}${consultChips(d,h,tf)}${personalChips(d,h,tf)}${(!tf)?gxChips(d,h):DB.gx.filter(g=>g.date===d&&g.hour===h&&g.trainer===tf).map(g=>gxChips(d,h)).join('')}</td>`;
+      return `<td class="${blocked?'blocked':''} ${d<today()?'past-col':''}" ondragover="event.preventDefault()" ondrop="dropSes(event,'${d}',${h},'${esc(tf)}')" onclick="${blocked?'openBlockedCell(\''+esc(tf)+'\',\''+d+'\','+h+')':'openAddSession(\''+d+'\','+h+',\''+esc(tf)+'\')'}">${list.map(s=>chipHTML(s,O(s),!tf)).join('')}${consultChips(d,h,tf)}${personalChips(d,h,tf)}${(!tf)?gxChips(d,h):DB.gx.filter(g=>g.date===d&&g.hour===h&&g.trainer===tf).map(g=>gxChips(d,h)).join('')}</td>`;
     }).join('')}</tr>`).join('')}</tbody>
     <tfoot><tr class="pt-cnt"><td class="time" style="font-weight:800">PT 수</td>${days.map(d=>{
       const parts=DB.trainers.filter(t=>!tf||t===tf).map(t=>{
@@ -927,7 +946,7 @@ function viewSched(){
     <tbody>${HOURS.map(h=>`<tr><td class="time">${h}:00</td>${DB.trainers.map(t=>{
       const list=daySessions.filter(s=>s.trainer===t&&s.hour===h);
       const blocked=isBlocked(t,date,h);
-      return `<td class="${blocked?'blocked':''}" ondragover="event.preventDefault()" ondrop="dropSes(event,'${date}',${h},'${esc(t)}')" onclick="${blocked?'':'openAddSession(\''+date+'\','+h+',\''+esc(t)+'\')'}">${list.map(s=>chipHTML(s,O(s),false)).join('')}${consultChips(date,h,t)}${personalChips(date,h,t)}${DB.gx.filter(g=>g.date===date&&g.hour===h&&g.trainer===t).map(g=>`<div class="chip gxchip" onclick="event.stopPropagation();openGxMenu('${g.id}')">GX</div>`).join('')}</td>`;
+      return `<td class="${blocked?'blocked':''}" ondragover="event.preventDefault()" ondrop="dropSes(event,'${date}',${h},'${esc(t)}')" onclick="${blocked?'openBlockedCell(\''+esc(t)+'\',\''+date+'\','+h+')':'openAddSession(\''+date+'\','+h+',\''+esc(t)+'\')'}">${list.map(s=>chipHTML(s,O(s),false)).join('')}${consultChips(date,h,t)}${personalChips(date,h,t)}${DB.gx.filter(g=>g.date===date&&g.hour===h&&g.trainer===t).map(g=>`<div class="chip gxchip" onclick="event.stopPropagation();openGxMenu('${g.id}')">GX</div>`).join('')}</td>`;
     }).join('')}</tr>`).join('')}</tbody>
     <tfoot><tr class="pt-cnt"><td class="time" style="font-weight:800">PT 수</td>${DB.trainers.map(t=>{
       const n=DB.sessions.filter(s=>s.date===date&&s.trainer===t&&['booked','done','noshow'].includes(s.status)).length;
