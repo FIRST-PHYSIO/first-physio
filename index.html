@@ -201,9 +201,9 @@ const REAL_SEED={"members":[{"id":"m_0","name":"Tasya","trainer":"김택연","pr
 
 /* ================= 데이터 ================= */
 let DB=null;
-function fresh(){return {members:[],sessions:[],gx:[],gxPay:[],refunds:[],gxMembers:[],notes:[],consults:[],personal:[],blocks:[],events:[],deleted:[],trainers:['홍웅표','신종수','김택연','정병건','장동진','김강윤'],trainerMeta:{},duty:JSON.parse(JSON.stringify(DEFAULT_DUTY)),noshowDeduct:true,metaTs:Date.now(),seq:1};}
+function fresh(){return {members:[],sessions:[],gx:[],gxPay:[],refunds:[],gxMembers:[],notes:[],consults:[],personal:[],blocks:[],events:[],deleted:[],purged:[],trainers:['홍웅표','신종수','김택연','정병건','장동진','김강윤'],trainerMeta:{},duty:JSON.parse(JSON.stringify(DEFAULT_DUTY)),noshowDeduct:true,metaTs:Date.now(),seq:1};}
 function load(){
-  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));DB.gx=DB.gx||[];DB.gxPay=DB.gxPay||[];DB.refunds=DB.refunds||[];DB.gxMembers=DB.gxMembers||[];DB.notes=DB.notes||[];DB.consults=DB.consults||[];DB.personal=DB.personal||[];seedGxMembers();ensureMeetingBlocks();applyJulyPatch();dedupeSessions();autoCompletePast();return;}}catch(e){}
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.members){DB=d;DB.blocks=DB.blocks||[];DB.events=DB.events||[];DB.deleted=DB.deleted||[];DB.trainerMeta=DB.trainerMeta||{};DB.duty=DB.duty||JSON.parse(JSON.stringify(DEFAULT_DUTY));DB.gx=DB.gx||[];DB.gxPay=DB.gxPay||[];DB.refunds=DB.refunds||[];DB.gxMembers=DB.gxMembers||[];DB.notes=DB.notes||[];DB.consults=DB.consults||[];DB.personal=DB.personal||[];DB.purged=DB.purged||[];seedGxMembers();ensureMeetingBlocks();applyJulyPatch();applyPurge();dedupeSessions();autoCompletePast();return;}}catch(e){}
   DB=fresh();importSeed();seedGxMembers();ensureMeetingBlocks();applyJulyPatch();dedupeSessions();autoCompletePast();
 }
 /* 7월 시트 정밀 재추출 반영 패치(v2) — 시트가 7월의 기준.
@@ -307,6 +307,24 @@ function saveLocal(){localStorage.setItem(KEY,JSON.stringify(DB));}
 /* ---- 실행 취소 (↩️ / Ctrl+Z): 이 기기에서의 최근 작업 30단계 ---- */
 let UNDO=[],PREV=null;
 const SNAP_COLS=['members','sessions','gx','gxPay','refunds','gxMembers','notes','consults','personal','blocks'];
+/* ===== 영구 삭제(purge) — 어떤 기기가 되살려도 매번 자동으로 다시 제거 ===== */
+function purgeIds(){return new Set((DB.purged||[]).map(p=>p.id));}
+function markPurged(ids){
+  const set=purgeIds();
+  (Array.isArray(ids)?ids:[ids]).forEach(id=>{if(id&&!set.has(id))DB.purged.push({id,ts:now()});});
+  if(DB.purged.length>20000)DB.purged=DB.purged.slice(-20000);
+}
+function applyPurge(){
+  const set=purgeIds();if(!set.size)return 0;
+  let n=0;
+  SNAP_COLS.forEach(k=>{
+    const before=(DB[k]||[]).length;
+    DB[k]=(DB[k]||[]).filter(x=>!set.has(x.id));
+    n+=before-DB[k].length;
+  });
+  if(n)saveLocal();
+  return n;
+}
 function snapState(){
   const o={};
   SNAP_COLS.forEach(k=>o[k]=DB[k]||[]);
@@ -324,7 +342,11 @@ function applyUndo(){
   if(!UNDO.length){alert('되돌릴 작업이 없습니다. (이 기기에서 한 작업만 취소할 수 있어요)');return;}
   if(!confirm('마지막 작업을 취소하고 이전 상태로 되돌릴까요?'))return;
   const snap=UNDO.pop();
-  const tomb=new Set((DB.deleted||[]).map(d=>d.id));
+  /* 되돌릴 대상은 영구삭제 목록에서 제외 (id 변경 후에도 반영되도록 먼저 처리) */
+  const snapIds=new Set();SNAP_COLS.forEach(k=>(snap[k]||[]).forEach(x=>snapIds.add(x.id)));
+  DB.purged=(DB.purged||[]).filter(p=>!snapIds.has(p.id));
+  DB.deleted=(DB.deleted||[]).filter(d=>!snapIds.has(d.id));
+  const tomb=new Set();
   const idmap={};
   SNAP_COLS.forEach(k=>{
     const cur=DB[k]||[];const old=snap[k]||[];
@@ -471,6 +493,11 @@ function mergeDB(local,remote){
   out.seq=Math.max(local.seq||1,remote.seq||1);
   out.seedVer=Math.max(local.seedVer||1,remote.seedVer||1);
   out.appVer=Math.max(local.appVer||0,remote.appVer||0);
+  const pmap={};
+  (local.purged||[]).concat(remote.purged||[]).forEach(p=>{if(p&&p.id)pmap[p.id]=p;});
+  out.purged=Object.values(pmap).slice(-20000);
+  const pset=new Set(out.purged.map(p=>p.id));
+  SNAP_COLS.forEach(k=>{out[k]=(out[k]||[]).filter(x=>!pset.has(x.id));});
   return out;
 }
 async function pullSync(force){
@@ -491,7 +518,8 @@ async function pullSync(force){
       DB=mergeDB(DB,rows[0].data);
       SYNC.syncedVer=rows[0].version;
       saveLocal();
-      if(dedupeSessions())schedulePush();
+      const purgedN=applyPurge();
+      if(dedupeSessions()||purgedN)schedulePush(); /* 되살아난 기록은 즉시 재삭제 후 서버에 전파 */
       autoCompletePast();
       PREV=snapState(); /* 다른 기기 변경은 취소 대상에서 제외 */
       SYNC.state='on';
@@ -665,7 +693,7 @@ function openGxPayAdd(){
     DB.gxPay.push({id:uid(),name:n,date:document.getElementById('gp-date').value,months:c,amount:a,updatedAt:now()});
     addEvent('staff','GX 결제: '+n+' '+c+'개월 '+fmtW(a));save();closeModal();render();})()">저장</button></div>`);
 }
-function delGxPay(id){if(!confirm('이 GX 결제 기록을 삭제할까요?'))return;DB.deleted.push({id,ts:now()});DB.gxPay=DB.gxPay.filter(x=>x.id!==id);save();render();}
+function delGxPay(id){if(!confirm('이 GX 결제 기록을 삭제할까요?'))return;markPurged(id);DB.deleted.push({id,ts:now()});DB.gxPay=DB.gxPay.filter(x=>x.id!==id);save();render();}
 function openRefundAdd(){
   openModal(`
   <h3>환불 기록 추가 <span style="font-size:12px;color:var(--sub);font-weight:500">— 부가세 뺀 금액</span></h3>
@@ -683,7 +711,7 @@ function openRefundAdd(){
     DB.refunds.push({id:uid(),type:document.getElementById('rf-type').value,name:n,date:document.getElementById('rf-date').value,amount:a,memo:document.getElementById('rf-memo').value.trim(),updatedAt:now()});
     addEvent('staff','환불: '+n+' '+fmtW(a));save();closeModal();render();})()">저장</button></div>`);
 }
-function delRefund(id){if(!confirm('이 환불 기록을 삭제할까요?'))return;DB.deleted.push({id,ts:now()});DB.refunds=DB.refunds.filter(x=>x.id!==id);save();render();}
+function delRefund(id){if(!confirm('이 환불 기록을 삭제할까요?'))return;markPurged(id);DB.deleted.push({id,ts:now()});DB.refunds=DB.refunds.filter(x=>x.id!==id);save();render();}
 function goldenList(){return DB.members.filter(m=>m.status==='active'&&totalOf(m)>0&&remainOf(m)<=3&&remainOf(m)>0);}
 function expiredList(){return DB.members.filter(m=>m.status==='active'&&totalOf(m)>0&&remainOf(m)<=0);}
 function lateCancelList(){return DB.sessions.filter(s=>s.status==='late_cancel');}
@@ -827,7 +855,7 @@ function openConsultMenu(id){
     <div class="full"><label>메모 (연락처·문의 내용)</label><input id="cs-memo" value="${esc(c.memo||'')}"></div>
   </div>
   <div class="modal-actions">
-    <button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="if(confirm('상담 기록을 삭제할까요?')){DB.deleted.push({id:'${id}',ts:now()});DB.consults=DB.consults.filter(x=>x.id!=='${id}');save();closeModal();render();}">삭제</button>
+    <button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="if(confirm('상담 기록을 삭제할까요?')){markPurged('${id}');DB.deleted.push({id:'${id}',ts:now()});DB.consults=DB.consults.filter(x=>x.id!=='${id}');save();closeModal();render();}">삭제</button>
     <button class="btn ghost" onclick="closeModal()">닫기</button>
     <button class="btn" onclick="(function(){const c2=DB.consults.find(x=>x.id==='${id}');c2.kind=document.getElementById('cs-kind').value;c2.trainer=document.getElementById('cs-trainer').value;c2.name=document.getElementById('cs-name').value.trim();c2.hour=+document.getElementById('cs-hour').value;c2.memo=document.getElementById('cs-memo').value.trim();c2.updatedAt=now();save();closeModal();render();})()">저장</button>
   </div>`);
@@ -847,6 +875,7 @@ function openBlockedCell(trainer,date,hour){
 function unblock(id){
   const b=DB.blocks.find(x=>x.id===id);if(!b)return;
   if(!b.date&&!confirm('매주 반복 차단입니다. 해제하면 모든 주에서 풀립니다. 계속할까요?'))return;
+  markPurged(id);
   DB.deleted.push({id,ts:now()});
   DB.blocks=DB.blocks.filter(x=>x.id!==id);
   save();closeModal();render();
@@ -878,7 +907,7 @@ function openPersonalMenu(id){
     <div class="full"><label>내용</label><input id="ps-text" value="${esc(p.text||'')}"></div>
   </div>
   <div class="modal-actions">
-    <button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="if(confirm('삭제할까요?')){DB.deleted.push({id:'${id}',ts:now()});DB.personal=DB.personal.filter(x=>x.id!=='${id}');save();closeModal();render();}">삭제</button>
+    <button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="if(confirm('삭제할까요?')){markPurged('${id}');DB.deleted.push({id:'${id}',ts:now()});DB.personal=DB.personal.filter(x=>x.id!=='${id}');save();closeModal();render();}">삭제</button>
     <button class="btn ghost" onclick="closeModal()">닫기</button>
     <button class="btn" onclick="(function(){const p2=DB.personal.find(x=>x.id==='${id}');p2.trainer=document.getElementById('ps-trainer').value;p2.hour=+document.getElementById('ps-hour').value;p2.text=document.getElementById('ps-text').value.trim();p2.updatedAt=now();save();closeModal();render();})()">저장</button>
   </div>`);
@@ -898,7 +927,7 @@ function openGxMenu(id){
   </div>
   <div class="note" style="margin-top:8px">GX 결제(매출)는 [대시보드 → GX 결제] 원장에 기록하세요. 코치 정산은 진행 횟수 × 회당 단가로 자동 계산됩니다.</div>
   <div class="modal-actions">
-    <button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="if(confirm('이 GX 기록을 삭제할까요?')){DB.deleted.push({id:'${id}',ts:now()});DB.gx=DB.gx.filter(x=>x.id!=='${id}');save();closeModal();render();}">삭제</button>
+    <button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="if(confirm('이 GX 기록을 삭제할까요?')){markPurged('${id}');DB.deleted.push({id:'${id}',ts:now()});DB.gx=DB.gx.filter(x=>x.id!=='${id}');save();closeModal();render();}">삭제</button>
     <button class="btn ghost" onclick="closeModal()">닫기</button>
     <button class="btn" onclick="(function(){const g2=DB.gx.find(x=>x.id==='${id}');g2.trainer=document.getElementById('gx-trainer').value;g2.updatedAt=now();save();closeModal();render();})()">저장</button>
   </div>`);
@@ -1201,9 +1230,9 @@ function openSessionMenu(sid){
 }
 function delSession(sid){
   if(!confirm('이 세션 기록을 삭제할까요?'))return;
-  /* 완전 제거 대신 숨김(취소) 처리 — 최신 도장이 찍혀 어떤 기기와 병합돼도 되살아나지 않음 */
-  const s=DB.sessions.find(x=>x.id===sid);
-  if(s){s.status='cancelled';s.hidden=true;s.memo='';s.updatedAt=now();}
+  markPurged(sid);
+  DB.sessions=DB.sessions.filter(x=>x.id!==sid);
+  DB.deleted.push({id:sid,ts:now()});
   save();closeModal();render();
 }
 function setSession(sid,st){
@@ -1333,12 +1362,12 @@ function addDateBlock(){
 }
 function delBlock(id){
   const i=DB.blocks.findIndex(b=>b.id===id);
-  if(i>=0){DB.deleted.push({id,ts:now()});DB.blocks.splice(i,1);save();renderBlocks();}
+  if(i>=0){markPurged(id);DB.deleted.push({id,ts:now()});DB.blocks.splice(i,1);save();renderBlocks();}
 }
 function toggleBlock(wd,h){
   const t=BLK_TRAINER;
   const i=DB.blocks.findIndex(x=>x.trainer===t&&x.weekday===wd&&!x.date&&x.hour===h);
-  if(i>=0){DB.deleted.push({id:DB.blocks[i].id,ts:now()});DB.blocks.splice(i,1);}
+  if(i>=0){markPurged(DB.blocks[i].id);DB.deleted.push({id:DB.blocks[i].id,ts:now()});DB.blocks.splice(i,1);}
   else DB.blocks.push({id:uid(),trainer:t,weekday:wd,hour:h,updatedAt:now()});
   save();renderBlocks();
 }
@@ -1543,6 +1572,7 @@ function openMember(mid){
 }
 function delMember(mid){
   if(!confirm('회원과 모든 세션 기록을 삭제할까요? 되돌릴 수 없습니다.'))return;
+  markPurged([mid,...memberSessions(mid).map(s=>s.id)]);
   DB.deleted.push({id:mid,ts:now()});
   memberSessions(mid).forEach(s=>DB.deleted.push({id:s.id,ts:now()}));
   DB.members=DB.members.filter(x=>x.id!==mid);
@@ -1705,7 +1735,7 @@ function openGxMember(id){
     ${m&&m.status==='paused'?`<div class="full"><div class="note warn">정지 중 (${m.pausedAt}부터) — 사유: ${esc(m.pauseReason||'-')}</div></div>`:''}
   </div>
   <div class="modal-actions">
-    ${m?`<button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="if(confirm('이 그룹 회원을 삭제할까요?')){DB.deleted.push({id:'${m.id}',ts:now()});DB.gxMembers=DB.gxMembers.filter(x=>x.id!=='${m.id}');save();closeModal();render();}">삭제</button>`:''}
+    ${m?`<button class="btn ghost" style="color:var(--bad);margin-right:auto" onclick="if(confirm('이 그룹 회원을 삭제할까요?')){markPurged('${m.id}');DB.deleted.push({id:'${m.id}',ts:now()});DB.gxMembers=DB.gxMembers.filter(x=>x.id!=='${m.id}');save();closeModal();render();}">삭제</button>`:''}
     <button class="btn ghost" onclick="closeModal()">닫기</button>
     <button class="btn" onclick="saveGxMember('${m?m.id:''}')">저장</button>
   </div>`);
@@ -1919,6 +1949,16 @@ create policy "fp_anon" on fp_store
       </tbody></table>
       <div style="display:flex;gap:8px;margin-top:10px"><input id="new-trainer" placeholder="새 코치 이름"><button class="btn" onclick="addTrainer()">추가</button></div>
       <div class="note" style="margin-top:8px">새 코치는 추가 즉시 색상·이니셜이 자동 배정되고 전 기기에 동기화됩니다. [퇴사 처리]를 누르면 담당 회원과 예약 수업의 인수인계를 안내하며, 과거 기록·통계는 그대로 보존됩니다.</div>
+    </div>
+    <div class="card"><h2>🩺 동기화 진단 <span class="hint">삭제가 되살아나면 여기서 확인</span></h2>
+      <table><tbody>
+        <tr><td>이 기기 앱 버전</td><td class="mono"><b>v${APP_VER}</b></td></tr>
+        <tr><td>서버에 기록된 최신 버전</td><td class="mono"><b style="${(DB.appVer||0)>APP_VER?'color:var(--bad)':''}">v${DB.appVer||0}</b> ${(DB.appVer||0)>APP_VER?'← 이 기기가 구버전입니다. 새로고침하세요':(DB.appVer||0)<APP_VER?'(다른 기기 중 구버전이 있을 수 있음)':'✓ 최신'}</td></tr>
+        <tr><td>마지막 서버 확인</td><td class="mono">${SYNC.lastPull?new Date(SYNC.lastPull).toLocaleTimeString('ko-KR'):'-'}</td></tr>
+        <tr><td>영구 삭제 기록</td><td class="mono">${(DB.purged||[]).length}건 <span style="color:var(--sub);font-size:12px">— 되살아나도 자동 재삭제</span></td></tr>
+      </tbody></table>
+      <div class="note warn" style="margin-top:10px">삭제한 일정이 다시 나타난다면, <b>모든 선생님 기기에서 한 번씩 새로고침</b>(폰은 홈 화면 앱 완전 종료 후 재실행)해 주세요. 구버전을 켜둔 기기가 옛 데이터를 계속 올려보냅니다.</div>
+      <div class="pill-row"><button class="btn ghost" onclick="pullSync(true).then(()=>{applyPurge();render();alert('서버와 다시 맞췄습니다.');})">지금 강제 동기화</button></div>
     </div>
     <div class="card"><h2>운영 규칙 · 데이터</h2>
       <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer;margin-bottom:10px">
