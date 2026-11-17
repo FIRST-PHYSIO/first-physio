@@ -55,6 +55,9 @@ input{font:inherit;color:inherit;-webkit-appearance:none;-webkit-user-select:tex
 .ico.dup{background:#fdf3e2;color:#e8930c}
 .res .nm{font-size:28px;font-weight:800}
 .res .st{color:#68738a;margin-bottom:14px;font-size:17px}
+.res .st.fin{color:#0eab6b;font-weight:800;font-size:24px}
+.ico.ok{width:96px;height:96px;line-height:96px;font-size:52px;background:#0eab6b;color:#fff}
+.msg.fin{color:#087a4c;background:#e5f8f0;border-radius:12px;padding:10px 12px;font-size:18px}
 .big{font-size:56px;font-weight:800;line-height:1.1}
 .big small{font-size:22px;color:#68738a;font-weight:600}
 .dots{margin:14px auto 8px;max-width:340px;font-size:0}
@@ -196,6 +199,7 @@ function normConf(d){d=d||{};return {codes:d.codes||{},phones:d.phones||{},pin:d
 var PT=[],GX=[],USED={},ready=false;
 var CONF=normConf(null),PEOPLE=[],MON={};
 var mode="kiosk",unlocked=false,tab="today",viewMonth=curMonth(),q="";
+var doneMsg="",doneNext="",doneTimer=null;
 var typed="",kmsg="",kerr=false,busy=false,resultTimer=null,toastTimer=null;
 
 function mon(mk){return MON[mk]||normMonth(null,mk);}
@@ -303,7 +307,14 @@ function syncAll(cb){
 /* ---------- 화면 공통 ---------- */
 function toast(t){var el=$("toast");el.innerHTML=esc(t);el.className="toast";clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.className="toast hidden";},2800);}
 function banner(t){var b=$("banner");b.innerHTML=esc(t||"");b.className=t?"banner":"banner hidden";}
-function closeModal(){clearTimeout(resultTimer);$("modal").innerHTML="";}
+function closeModal(){
+  clearTimeout(resultTimer);$("modal").innerHTML="";
+  if(doneNext&&mode==="kiosk"){ /* 창이 닫힌 뒤에도 출석 화면에 완료 표시를 잠깐 남긴다 */
+    doneMsg=doneNext;doneNext="";kmsg="";render();
+    clearTimeout(doneTimer);doneTimer=setTimeout(function(){doneMsg="";if(mode==="kiosk"&&!$("modal").innerHTML)render();},8000);
+  }else doneNext="";
+}
+function hm(){var d=now();return pad2(d.getHours())+":"+pad2(d.getMinutes());}
 function modal(html,wide){$("modal").innerHTML='<div class="ov" data-act="ovClose"><div class="sheet'+(wide?" wide":"")+'">'+html+"</div></div>";}
 function person(key){for(var i=0;i<PEOPLE.length;i++)if(PEOPLE[i].key===key)return PEOPLE[i];return null;}
 function kindLabel(o){return o.pt&&o.gx?"그룹+PT":o.pt?"PT":"그룹";}
@@ -317,10 +328,10 @@ function viewKiosk(){
   for(i=1;i<=9;i++)keys+='<div class="k"><button data-act="key" data-k="'+i+'">'+i+"</button></div>";
   return '<div class="kiosk"><div class="clock">'+clockText()+"</div><h1>출석 체크</h1>"+
     '<p class="hint">휴대폰 번호 <b>뒤 4자리</b>를 누르고 확인을 눌러주세요</p>'+
-    '<div class="disp'+(kerr?" err":"")+'">'+cells+'</div><div class="msg">'+esc(ready?kmsg:"회원 명단을 불러오는 중이에요…")+"</div>"+
+    '<div class="disp'+(kerr?" err":"")+'">'+cells+'</div><div class="msg'+(ready&&!kmsg&&doneMsg?" fin":"")+'">'+esc(ready?(kmsg||doneMsg):"회원 명단을 불러오는 중이에요…")+"</div>"+
     '<div class="pad">'+keys+'<div class="k"><button class="fn" data-act="back">지우기</button></div><div class="k"><button data-act="key" data-k="0">0</button></div><div class="k"><button class="go" data-act="enter">확인</button></div></div></div>';
 }
-function kioskFail(t){kmsg=t;kerr=true;typed="";render();setTimeout(function(){kerr=false;if(mode==="kiosk"&&!$("modal").innerHTML)render();},1200);}
+function kioskFail(t){doneMsg="";kmsg=t;kerr=true;typed="";render();setTimeout(function(){kerr=false;if(mode==="kiosk"&&!$("modal").innerHTML)render();},1200);}
 function enter(){
   if(!ready)return kioskFail("잠시만 기다려주세요. 불러오는 중이에요");
   if(typed.length<4)return kioskFail("번호 4자리를 입력해주세요");
@@ -378,9 +389,10 @@ function showResult(o,kind,dup,mk){
     var tot=totalOf(o.pt),u=usedOf(o.pt);
     if(tot)body+='<div class="note '+(tot-u<=3?"warn":"gray")+'">PT 진행 '+u+" / "+tot+"회 · 남은 횟수 "+(tot-u)+"회</div>";
   }
-  modal('<div class="res"><div class="ico '+(dup?"dup":"ok")+'">'+(dup?"!":"✓")+'</div><div class="nm">'+esc(o.name)+'님</div><div class="st">'+
-    (dup?"오늘은 이미 출석하셨어요":(kind==="gx"?"그룹 운동":"PT 회원")+" 출석 완료")+"</div>"+body+
+  modal('<div class="res"><div class="ico '+(dup?"dup":"ok")+'">'+(dup?"!":"✓")+'</div><div class="nm">'+esc(o.name)+'님</div><div class="st'+(dup?"":" fin")+'">'+
+    (dup?"오늘 출석은 이미 완료되어 있어요":(kind==="gx"?"그룹 운동":"PT 회원")+" 출석이 완료되었습니다")+"</div>"+body+
     '<div class="row"><button class="btn pri" data-act="close">확인</button></div></div>');
+  doneNext="✓ "+maskName(o.name)+"님 출석 완료 ("+hm()+")";
   clearTimeout(resultTimer);resultTimer=setTimeout(closeModal,kind==="gx"?RESULT_MS*2:RESULT_MS);
 }
 function bonusAsk(o,t){
@@ -394,8 +406,9 @@ function bonusDo(o,t){
   function fin(e){
     busy=false;
     var msg=e?"저장하지 못했어요. 다시 눌러주세요":full?(t==="blog"?"네이버 사진 리뷰는 이미 등록되어 있어요":"이번 달 스토리 공유 "+INSTA_MAX+"회를 모두 채웠어요"):(t==="blog"?"네이버 사진 리뷰 등록 완료 · 그룹 운동 +"+BLOG_DAYS+"일":"스토리 공유 "+instaN(mk,id)+" / "+INSTA_MAX+" · 그룹 운동 +1일");
-    modal('<div class="res"><div class="ico '+(e||full?"dup":"ok")+'">'+(e||full?"!":"✓")+'</div><div class="nm">'+esc(o.name)+'님</div><div class="st">'+msg+"</div>"+
+    modal('<div class="res"><div class="ico '+(e||full?"dup":"ok")+'">'+(e||full?"!":"✓")+'</div><div class="nm">'+esc(o.name)+'님</div><div class="st'+(e||full?"":" fin")+'">'+msg+"</div>"+
       (e?"":'<div class="note info">이번 달 추가 일수 +'+bonusOf(mk,id)+"일 · 선생님 확인 후 적용돼요</div>")+'<div class="row"><button class="btn pri" data-act="close">확인</button></div></div>');
+    if(!e&&!full)doneNext="✓ "+maskName(o.name)+"님 "+(t==="blog"?"사진 리뷰":"스토리 공유")+" 등록 완료 ("+hm()+")";
     clearTimeout(resultTimer);resultTimer=setTimeout(closeModal,RESULT_MS);
   }
   if(t==="blog")mutateConf(function(c){if(c.blog[id]){full=true;return false;}c.blog[id]=today();return true;},fin);
@@ -521,7 +534,7 @@ var A={
   pinSave:function(){var v=$("f_newpin").value.replace(/\s/g,"");if(v&&!/^\d{4,8}$/.test(v))return toast("숫자 4~8자리로 입력해주세요");
     mutateConf(function(c){c.pin=v;return true;},function(e){if(e)return toast("저장하지 못했어요");unlocked=true;closeModal();render();toast(v?"비밀번호를 바꿨어요":"기본 비밀번호로 돌아갔어요");});},
   refresh:function(){toast("불러오는 중…");syncAll(function(e){toast(e?"불러오지 못했어요":"최신 명단으로 맞췄어요");});},
-  key:function(el){if(typed.length<6){typed+=el.getAttribute("data-k");kmsg="";kerr=false;render();}},
+  key:function(el){if(typed.length<6){typed+=el.getAttribute("data-k");kmsg="";doneMsg="";kerr=false;render();}},
   back:function(){typed=typed.slice(0,-1);kmsg="";render();},
   enter:function(){enter();},
   close:function(){closeModal();},
