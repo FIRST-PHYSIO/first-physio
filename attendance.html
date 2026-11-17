@@ -69,7 +69,10 @@ input{font:inherit;color:inherit;-webkit-appearance:none;-webkit-user-select:tex
 .note.gray{background:#f4f6f9;color:#68738a}
 .choice button{display:block;width:100%;border:1px solid #e3e8f0;border-radius:16px;padding:18px;font-size:20px;font-weight:700;text-align:left;margin-bottom:10px}
 .choice button:active{background:#eaf0ff}
-.choice button small{float:right;color:#68738a;font-weight:500;font-size:15px;line-height:30px}
+.choice button small,.bns button small{float:right;color:#68738a;font-weight:500;font-size:15px;line-height:30px}
+.bns{margin-top:14px}
+.bns button{display:block;width:100%;border:1px solid #cfdcff;background:#f6f9ff;border-radius:14px;padding:14px 16px;font-size:17px;font-weight:700;text-align:left;margin-top:8px}
+.bns button:active{background:#eaf0ff}
 .row{margin-top:18px;display:-webkit-flex;display:flex}
 .btn{-webkit-flex:1;flex:1;border-radius:12px;padding:13px 14px;font-weight:700;background:#f4f6f9;border:1px solid #e3e8f0;margin-left:8px;text-align:center}
 .row .btn:first-child{margin-left:0}
@@ -184,8 +187,8 @@ function req(method,path,body,cb){
 function getRow(id,cb){req("GET","fp_store?id=eq."+id+"&select=data",null,function(e,rows){if(e)return cb(e);cb(null,(rows&&rows[0]&&rows[0].data)||null);});}
 function putRow(id,data,cb){req("POST","fp_store",{id:id,data:data,version:1},cb);}
 function monthId(mk){return +mk.replace("-","");}
-function normMonth(d,mk){d=d||{};return {month:mk,pt:d.pt||{},gx:d.gx||{},done:d.done||{}};}
-function normConf(d){d=d||{};return {codes:d.codes||{},phones:d.phones||{},pin:d.pin||""};}
+function normMonth(d,mk){d=d||{};return {month:mk,pt:d.pt||{},gx:d.gx||{},done:d.done||{},insta:d.insta||{}};}
+function normConf(d){d=d||{};return {codes:d.codes||{},phones:d.phones||{},pin:d.pin||"",blog:d.blog||{}};}
 
 /* ---------- 상태 ---------- */
 var PT=[],GX=[],USED={},ready=false;
@@ -196,6 +199,10 @@ var typed="",kmsg="",kerr=false,busy=false,resultTimer=null,toastTimer=null;
 function mon(mk){return MON[mk]||normMonth(null,mk);}
 function days(mk,kind,id){return mon(mk)[kind][id]||[];}
 function totalOf(m){var a=0,p=m.packages||[],i;for(i=0;i<p.length;i++)a+=(+p[i].count||0);return a;}
+/* 그룹 회원 추가 일수: 네이버 블로그 리뷰 1번(+5일), 인스타 스토리 공유 한 달 최대 5번(회당 +1일) */
+var BLOG_DAYS=5,INSTA_MAX=5;
+function instaN(mk,id){return (mon(mk).insta[id]||[]).length;}
+function bonusOf(mk,id){var b=CONF.blog[id];return ((b&&b.slice(0,7)===mk)?BLOG_DAYS:0)+instaN(mk,id);}
 function usedOf(m){return (+m.carryUsed||0)+(USED[m.id]||0);}
 
 /* 회원 묶기: 이름+뒷번호가 같으면 한 사람(그룹과 PT를 같이 하는 회원) */
@@ -360,6 +367,9 @@ function showResult(o,kind,dup,mk){
     body+=n>=GOAL?'<div class="note ok">'+GOAL+"일 달성! 1주일 연장 대상이에요 🎉</div>":'<div class="note info">'+(GOAL-n)+"일 더 출석하면 1주일 연장!</div>";
     if(!countable("gx",t))body+='<div class="note warn">오늘은 연장 인정일(1~28일 평일)이 아니라 횟수에 포함되지 않아요</div>';
     if(o.gx.end&&o.gx.end<t)body+='<div class="note gray">이용 기간이 '+esc(o.gx.end)+"까지였어요. 선생님께 문의해주세요</div>";
+    var ic=instaN(mk,o.gx.id);
+    body+='<div class="bns">'+(CONF.blog[o.gx.id]?"":'<button data-act="bonusAsk" data-key="'+esc(o.key)+'" data-t="blog">네이버 블로그 리뷰 썼어요<small>그룹 운동 +'+BLOG_DAYS+"일</small></button>")+
+      (ic<INSTA_MAX?'<button data-act="bonusAsk" data-key="'+esc(o.key)+'" data-t="insta">인스타 스토리 공유했어요<small>+1일 · 이번 달 '+ic+" / "+INSTA_MAX+"</small></button>":'<div class="note gray">이번 달 인스타 스토리 공유 '+INSTA_MAX+"회를 모두 채웠어요</div>")+"</div>";
   }else{
     body+=n>=GOAL?'<div class="note ok">'+GOAL+"회 달성! 프로틴 증정 또는 그룹 운동 1주일 체험 대상이에요 🎉</div>":'<div class="note info">'+(GOAL-n)+"회 더 오시면 프로틴 증정 또는 그룹 운동 1주일 체험!</div>";
     if(!countable("pt",t))body+='<div class="note warn">일요일 출석은 횟수에 포함되지 않아요</div>';
@@ -369,7 +379,25 @@ function showResult(o,kind,dup,mk){
   modal('<div class="res"><div class="ico '+(dup?"dup":"ok")+'">'+(dup?"!":"✓")+'</div><div class="nm">'+esc(o.name)+'님</div><div class="st">'+
     (dup?"오늘은 이미 출석하셨어요":(kind==="gx"?"그룹 운동":"PT 회원")+" 출석 완료")+"</div>"+body+
     '<div class="row"><button class="btn pri" data-act="close">확인</button></div></div>');
-  clearTimeout(resultTimer);resultTimer=setTimeout(closeModal,RESULT_MS);
+  clearTimeout(resultTimer);resultTimer=setTimeout(closeModal,kind==="gx"?RESULT_MS*2:RESULT_MS);
+}
+function bonusAsk(o,t){
+  modal("<h2>"+(t==="blog"?"네이버 블로그 리뷰를 작성하셨나요?":"인스타그램 스토리에 공유하셨나요?")+'</h2><p class="desc">'+esc(o.name)+"님께 그룹 운동 <b>"+(t==="blog"?BLOG_DAYS:1)+"일</b>이 추가돼요. 선생님이 확인한 뒤 적용해드립니다."+
+    (t==="blog"?" (블로그 리뷰는 1번만 가능)":" (한 달 최대 "+INSTA_MAX+"번)")+'</p><div class="row"><button class="btn" data-act="close">아니요</button><button class="btn pri" data-act="bonusDo" data-key="'+esc(o.key)+'" data-t="'+t+'">네, 했어요</button></div>');
+  clearTimeout(resultTimer);resultTimer=setTimeout(closeModal,20000);
+}
+function bonusDo(o,t){
+  if(busy)return;busy=true;
+  var id=o.gx.id,mk=curMonth(),full=false;
+  function fin(e){
+    busy=false;
+    var msg=e?"저장하지 못했어요. 다시 눌러주세요":full?(t==="blog"?"블로그 리뷰는 이미 등록되어 있어요":"이번 달 스토리 공유 "+INSTA_MAX+"회를 모두 채웠어요"):(t==="blog"?"블로그 리뷰 등록 완료 · 그룹 운동 +"+BLOG_DAYS+"일":"스토리 공유 "+instaN(mk,id)+" / "+INSTA_MAX+" · 그룹 운동 +1일");
+    modal('<div class="res"><div class="ico '+(e||full?"dup":"ok")+'">'+(e||full?"!":"✓")+'</div><div class="nm">'+esc(o.name)+'님</div><div class="st">'+msg+"</div>"+
+      (e?"":'<div class="note info">이번 달 추가 일수 +'+bonusOf(mk,id)+"일 · 선생님 확인 후 적용돼요</div>")+'<div class="row"><button class="btn pri" data-act="close">확인</button></div></div>');
+    clearTimeout(resultTimer);resultTimer=setTimeout(closeModal,RESULT_MS);
+  }
+  if(t==="blog")mutateConf(function(c){if(c.blog[id]){full=true;return false;}c.blog[id]=today();return true;},fin);
+  else mutateMonth(mk,function(m){var a=m.insta[id]||[];if(a.length>=INSTA_MAX){full=true;return false;}a.push(today());m.insta[id]=a;return true;},fin);
 }
 
 /* ---------- 관리자 화면 ---------- */
@@ -406,12 +434,12 @@ function viewList(kind){
     var st=n>=GOAL?(done?'<span class="badge b-gr">처리 완료</span>':'<span class="badge b-ok">'+(kind==="gx"?"1주 연장":"혜택 대상")+"</span>"):'<span class="badge b-gr">'+(GOAL-n)+unit+" 남음</span>";
     rows+='<tr data-act="detail" data-key="'+esc(o.key)+'" data-k="'+kind+'"><td><b>'+esc(o.name)+'</b></td><td class="mono">'+esc(o.code||"번호 없음")+"</td>"+
       "<td>"+bar(n)+'<span class="mono"><b>'+n+"</b> / "+GOAL+unit+"</span></td><td>"+st+"</td>"+
-      (kind==="pt"?'<td class="mono">'+usedOf(o.pt)+" / "+totalOf(o.pt)+"회</td>":'<td class="mono">'+esc(o.gx.end||"-")+"</td>")+"</tr>";
+      (kind==="pt"?'<td class="mono">'+usedOf(o.pt)+" / "+totalOf(o.pt)+"회</td>":"<td>"+(function(){var b=bonusOf(viewMonth,o.gx.id);return b?'<span class="badge '+(m.done["bonus:"+o.gx.id]?"b-gr":"b-wa")+'">+'+b+"일"+(m.done["bonus:"+o.gx.id]?" 적용 완료":"")+"</span>":"-";})()+'</td><td class="mono">'+esc(o.gx.end||"-")+"</td>")+"</tr>";
   }
   return '<div class="card"><div class="head">'+monthHead()+'<span class="r">'+searchBox()+"</span></div>"+
     '<div class="cap">'+(kind==="gx"?"1~28일 평일 중 "+GOAL+"일 이상 출석 → 1주일 연장":"1~말일 평일·토요일 중 "+GOAL+"회 이상 출석 → 프로틴 증정 또는 그룹 운동 1주일 체험")+
-    " · 매달 자동 리셋 · 달성 <b>"+ok+"명</b> · 회원을 누르면 날짜별로 수정할 수 있어요</div>"+
-    (rows?'<div class="tw"><table><tr><th>이름</th><th>출석번호</th><th>이번 달 출석</th><th>상태</th><th>'+(kind==="pt"?"PT 진행":"종료일")+"</th></tr>"+rows+"</table></div>":'<div class="empty">해당하는 회원이 없어요</div>')+"</div>";
+    (kind==="gx"?" · 블로그 리뷰 +"+BLOG_DAYS+"일(1번), 인스타 스토리 +1일(월 "+INSTA_MAX+"번)":"")+" · 매달 자동 리셋 · 달성 <b>"+ok+"명</b> · 회원을 누르면 날짜별로 수정할 수 있어요</div>"+
+    (rows?'<div class="tw"><table><tr><th>이름</th><th>출석번호</th><th>이번 달 출석</th><th>상태</th><th>'+(kind==="pt"?"PT 진행":"리뷰·스토리 추가</th><th>종료일")+"</th></tr>"+rows+"</table></div>":'<div class="empty">해당하는 회원이 없어요</div>')+"</div>";
 }
 function viewCodes(){
   var a=[],i,o,rows="",none=0;
@@ -452,6 +480,10 @@ function detail(key,kind){
   var dk=kind+":"+id,done=mon(viewMonth).done[dk];
   modal("<h2>"+esc(o.name)+" · "+(kind==="gx"?"그룹":"PT 회원")+" · "+y+"년 "+mo+'월</h2><p class="desc">날짜를 누르면 출석을 추가·취소할 수 있어요. 흐린 날짜는 횟수에 포함되지 않아요.</p>'+
     '<div class="cal">'+cells+'</div><div class="note '+(n>=GOAL?"ok":"info")+'">인정 출석 '+n+" / "+GOAL+unit+(n>=GOAL?(kind==="gx"?" · 1주일 연장 대상":" · 프로틴 증정 또는 그룹 1주 체험 대상"):"")+"</div>"+
+    (kind==="gx"?(function(){var b=bonusOf(viewMonth,id),bl=CONF.blog[id],ic=instaN(viewMonth,id),a='data-key="'+esc(key)+'"',bd=mon(viewMonth).done["bonus:"+id];
+      return '<div class="note gray">리뷰·스토리 추가 일수 <b>+'+b+"일</b><br>네이버 블로그 리뷰: "+(bl?esc(bl)+" 등록":"없음")+' <button class="btn sm" data-act="bonusAdm" '+a+' data-t="blog">'+(bl?"취소":"등록")+"</button><br>인스타 스토리: "+ic+" / "+INSTA_MAX+
+        ' <button class="btn sm" data-act="bonusAdm" '+a+' data-t="insta" data-d="-1">−</button><button class="btn sm" data-act="bonusAdm" '+a+' data-t="insta" data-d="1">+</button>'+
+        (b?'<br><button class="btn sm '+(bd?"":"okb")+'" style="margin:8px 0 0" data-act="done" '+a+' data-k="gx" data-b="1">'+(bd?"추가 일수 적용 완료 취소":"추가 일수 적용 완료")+"</button>":"")+"</div>";})():"")+
     (kind==="pt"&&totalOf(o.pt)?'<div class="note gray">PT 진행 '+usedOf(o.pt)+" / "+totalOf(o.pt)+"회 (내부 운영 시스템 기록 기준)</div>":"")+
     '<div class="row">'+(n>=GOAL?'<button class="btn '+(done?"":"okb")+'" data-act="done" data-key="'+esc(key)+'" data-k="'+kind+'">'+(done?"처리 완료 취소":(kind==="gx"?"연장 처리 완료":"혜택 지급 완료"))+"</button>":"")+
     '<button class="btn pri" data-act="close">닫기</button></div>',true);
@@ -502,8 +534,15 @@ var A={
     var id=o[kind].id;
     mutateMonth(viewMonth,function(m){var a=m[kind][id]||[],i=a.indexOf(d);if(i>=0)a.splice(i,1);else{a.push(d);a.sort();}m[kind][id]=a;return true;},
       function(e){busy=false;if(e)return toast("저장하지 못했어요");render();detail(key,kind);});},
-  done:function(el){var key=el.getAttribute("data-key"),kind=el.getAttribute("data-k"),o=person(key);if(!o)return;var dk=kind+":"+o[kind].id;
+  done:function(el){var key=el.getAttribute("data-key"),kind=el.getAttribute("data-k"),o=person(key);if(!o)return;var dk=(el.getAttribute("data-b")?"bonus":kind)+":"+o[kind].id;
     mutateMonth(viewMonth,function(m){if(m.done[dk])delete m.done[dk];else m.done[dk]=today();return true;},function(e){if(e)return toast("저장하지 못했어요");render();detail(key,kind);});},
+  bonusAsk:function(el){var o=person(el.getAttribute("data-key"));if(o&&o.gx)bonusAsk(o,el.getAttribute("data-t"));},
+  bonusDo:function(el){var o=person(el.getAttribute("data-key"));if(o&&o.gx)bonusDo(o,el.getAttribute("data-t"));},
+  bonusAdm:function(el){var key=el.getAttribute("data-key"),t=el.getAttribute("data-t"),o=person(key);if(!o||!o.gx)return;
+    var id=o.gx.id,ds=viewMonth===curMonth()?today():viewMonth+"-01";
+    function fin(e){if(e)return toast("저장하지 못했어요");render();detail(key,"gx");}
+    if(t==="blog")mutateConf(function(c){if(c.blog[id])delete c.blog[id];else c.blog[id]=ds;return true;},fin);
+    else{var up=el.getAttribute("data-d")==="1";mutateMonth(viewMonth,function(m){var a=m.insta[id]||[];if(up){if(a.length>=INSTA_MAX)return false;a.push(ds);}else{if(!a.length)return false;a.pop();}m.insta[id]=a;return true;},fin);}},
   editPhone:function(el){editPhone(el.getAttribute("data-key"));},
   savePhone:function(el){var v=$("f_p4").value.replace(/\D/g,"");if(v.length!==4)return toast("숫자 4자리를 입력해주세요");setPhone(el.getAttribute("data-key"),v);},
   clearPhone:function(el){setPhone(el.getAttribute("data-key"),"");}
